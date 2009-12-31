@@ -295,11 +295,11 @@ class LinkedIn(object):
     def getAccessTokenURL(self):
         return "%s://%s%s" % (self.URI_SCHEME, self.API_ENDPOINT, self.ACCESS_TOKEN_URL)
 
-    def getAuthorizeURL(self):
+    def getAuthorizeURL(self, request_token = None):
+        self.request_token = request_token if request_token is not None else self.request_token
         if self.request_token is None:
             raise OAuthError("OAuth Request Token is NULL. Plase acquire this first.")
         return "%s%s?oauth_token=%s" % (self.BASE_URL, self.REDIRECT_URL, self.request_token) 
-
     
     #################################################
     # HELPER FUNCTIONS                              #
