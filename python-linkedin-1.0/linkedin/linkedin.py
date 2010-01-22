@@ -163,7 +163,7 @@ class Profile(object):
     @staticmethod
     def create(xml_string):
         """
-        @This method is a static method so it shouldn't be called from an isntance.
+        @This method is a static method so it shouldn't be called from an instance.
         
         Parses the given xml string and results in a Profile instance.
         If the given instance is not valid, this method returns NULL.
@@ -209,7 +209,7 @@ class Profile(object):
             return profile
         except:
             return None
-        
+
         return None
 
     def _unescape(self, url):
@@ -700,6 +700,90 @@ class LinkedIn(object):
             if profile is not None:
                 result.append(profile)
         return result
+
+    def GetSearch(self, parameters):
+        """
+        Use the Search API to find LinkedIn profiles using keywords,
+        company, name, or other methods. This returns search results,
+        which are an array of matching member profiles. Each matching
+        profile is similar to a mini-profile popup view of LinkedIn
+        member profiles.
+
+        Request URL Structure:
+        http://api.linkedin.com/v1/people?keywords=['+' delimited keywords]&name=[first name + last name]&company=[company name]&current-company=[true|false]&title=[title]&current-title=[true|false]&industry-code=[industry code]&search-location-type=[I,Y]&country-code=[country code]&postal-code=[postal code]&network=[in|out]&start=[number]&count=[1-10]&sort-criteria=[ctx|endorsers|distance|relevance]
+        """
+        # check the requirements
+        if (not self.access_token) or (not self.access_token_secret):
+            self.error = "You do not have an access token. Plase perform 'accessToken()' method first."
+            raise OAuthError(self.error)
+
+        # first we need to specify the url according to the parameters given
+        raw_url = "/v1/people"
+        request_url = "%s?%s" % (raw_url, self._urlencode(parameters))
+        
+        # generate nonce and timestamp
+        nonce = self._generate_nonce()
+        timestamp = self._generate_timestamp()
+        
+        # create signature and signature base string
+        FULL_URL = "%s://%s%s" % (self.URI_SCHEME, self.API_ENDPOINT, raw_url)
+        
+        method = "GET"
+        query_dict = {"oauth_consumer_key": self.API_KEY,
+                      "oauth_nonce": nonce,
+                      "oauth_signature_method": self.signature_method,
+                      "oauth_timestamp": timestamp,
+                      "oauth_token" : self.access_token,
+                      "oauth_version": self.version
+                      }
+        query_dict.update(parameters)
+        
+        signature_base_string = "&".join([self._quote(method), self._quote(FULL_URL), self._quote(self._urlencode(query_dict))])
+        hashed = hmac.new(self._quote(self.API_SECRET) + "&" + self._quote(self.access_token_secret), signature_base_string, hashlib.sha1)
+        signature = binascii.b2a_base64(hashed.digest())[:-1]
+
+        # create the HTTP header
+        header = 'OAuth realm="http://api.linkedin.com", '
+        header += 'oauth_nonce="%s", '
+        header += 'oauth_signature_method="%s", '
+        header += 'oauth_timestamp="%d", '
+        header += 'oauth_consumer_key="%s", '
+        header += 'oauth_token="%s", '
+        header += 'oauth_signature="%s", '
+        header += 'oauth_version="%s"'
+        header = header % (nonce, self.signature_method, timestamp,
+                           self._quote(self.API_KEY), self._quote(self.access_token),
+                           self._quote(signature), self.version)
+
+        # make the request
+        connection = httplib.HTTPSConnection(self.API_ENDPOINT)
+        connection.request(method, request_url, headers = {'Authorization': header})
+        response = connection.getresponse()
+        
+        # according to the response, decide what you want to do
+        if response is None:
+            self.error = "No HTTP response received."
+            connection.close()
+            return None
+
+        response = response.read()
+
+        connection.close()
+        error = self._parse_error(response)
+        if error:
+            self.error = error
+            return None
+
+        document = minidom.parseString(response)
+        connections = document.getElementsByTagName("person")
+        result = []
+        for connection in connections:
+            profile = Profile.create(connection.toxml())
+            if profile is not None:
+                result.append(profile)
+        print result
+        return result
+
 
     def getRequestTokenError(self):
         return self.request_oauth_error
