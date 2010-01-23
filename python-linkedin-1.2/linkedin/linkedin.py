@@ -192,7 +192,7 @@ class Profile(object):
             public_profile = person.getElementsByTagName("site-public-profile-request")
             if public_profile:
                 public_profile = public_profile[0]
-                profile.public_url = profile. _get_child(public_profile, "url")
+                profile.public_url = profile._get_child(public_profile, "url")
 
             # create positions
             positions = person.getElementsByTagName("positions")
