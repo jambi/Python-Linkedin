@@ -302,7 +302,7 @@ class LinkedIn(object):
         return "%s://%s%s" % (self.URI_SCHEME, self.API_ENDPOINT, self.ACCESS_TOKEN_URL)
 
     def getAuthorizeURL(self, request_token = None):
-        self.request_token = request_token if request_token is not None else self.request_token
+        self.request_token = request_token and request_token or self.request_token
         if self.request_token is None:
             raise OAuthError("OAuth Request Token is NULL. Plase acquire this first.")
         return "%s%s?oauth_token=%s" % (self.BASE_URL, self.REDIRECT_URL, self.request_token) 
@@ -451,9 +451,9 @@ class LinkedIn(object):
         #################
         # BEGIN ROUTINE #
         #################
-        self.request_token = request_token if request_token is not None else self.request_token
-        self.request_token_secret = request_token_secret is not None if request_token_secret else self.request_token_secret
-        self.verifier = verifier if verifier is not None else self.verifier
+        self.request_token = request_token and request_token or self.request_token
+        self.request_token_secret = request_token_secret and request_token_secret or self.request_token_secret
+        self.verifier = verifier and verifier or self.verifier
         # if there is no request token, fail immediately
         if self.request_token is None:
             raise OAuthError("There is no Request Token. Please perform 'requestToken' method and obtain that token first.")
