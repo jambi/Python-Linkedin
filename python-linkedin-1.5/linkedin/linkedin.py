@@ -226,8 +226,7 @@ class Profile(object):
         If the given instance is not valid, this method returns NULL.
         """
         try:
-            document = minidom.parseString(xml_string)
-            print document.toprettyxml()
+            document = minidom.parseString(xml_string)            
             person = document.getElementsByTagName("person")[0]
             profile = Profile()
             profile.id = profile._get_child(person, "id")
@@ -1165,7 +1164,6 @@ class LinkedIn(object):
         # If API server sends us a response, we know that there occurs an error.
         # So we have to parse the response to make sure what causes the error.
         # and let the user know by returning False.
-        print response
         if response:
             self.error = self._parse_error(response)
             return False
