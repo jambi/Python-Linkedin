@@ -11,8 +11,14 @@
 """
 Provides a Pure Python LinkedIn API Interface.
 """
+try:
+    import sha
+except DeprecationWarning, derr:
+    import haslib
+    sha = hashlib.sha1
 
-import urllib, urllib2, time, random, httplib, hmac, hashlib, binascii, cgi, string, datetime
+
+import urllib, urllib2, time, random, httplib, hmac, binascii, cgi, string, datetime
 from HTMLParser import HTMLParser
 
 from xml.dom import minidom
@@ -138,6 +144,7 @@ class Position(object):
         self.title      = None
         self.summary    = None
         self.start_date = None
+        self.end_date = None
         self.company    = None
         
     @staticmethod
@@ -180,6 +187,17 @@ class Position(object):
                     position.start_date = datetime.date(year, month, 1)
                 except Exception, detail:
                     pass
+
+            end_date = child.getElementsByTagName("end-date")
+            if end_date:
+                end_date = end_date[0]
+                try:
+                    year = int(position._get_child(end_date, "year"))
+                    month = int(position._get_child(end_date, "month"))
+                    position.end_date = datetime.date(year, month, 1)
+                except Exception, detail:
+                    pass
+
             result.append(position)
 
         return result
@@ -374,7 +392,7 @@ class LinkedIn(object):
         return urllib.quote(st, safe='~')
 
     def _utf8(self, st):
-        return st.encode("utf-8") if isinstance(st, unicode) else str(st)
+        return isinstance(st, unicode) and st.encode("utf-8") or str(st)
 
     def _urlencode(self, query_dict):
         keys_and_values = [(self._quote(self._utf8(k)), self._quote(self._utf8(v))) for k,v in query_dict.items()]
@@ -451,7 +469,7 @@ class LinkedIn(object):
         query_string = self._quote(self._urlencode(query_dict))
         signature_base_string = "&".join([self._quote(method), self._quote(url), query_string])
         # create actual signature
-        hashed = hmac.new(self._quote(self.API_SECRET) + "&", signature_base_string, hashlib.sha1)
+        hashed = hmac.new(self._quote(self.API_SECRET) + "&", signature_base_string, sha)
         signature = binascii.b2a_base64(hashed.digest())[:-1]
         # it is time to create the heaader of the http request that will be sent
         header = 'OAuth realm="http://api.linkedin.com", '
@@ -535,7 +553,7 @@ class LinkedIn(object):
         query_string = self._quote(self._urlencode(query_dict))
         signature_base_string = "&".join([self._quote(method), self._quote(url), query_string])
         # create actual signature
-        hashed = hmac.new(self._quote(self.API_SECRET) + "&" + self._quote(self.request_token_secret), signature_base_string, hashlib.sha1)
+        hashed = hmac.new(self._quote(self.API_SECRET) + "&" + self._quote(self.request_token_secret), signature_base_string, sha)
         signature = binascii.b2a_base64(hashed.digest())[:-1]
         # it is time to create the heaader of the http request that will be sent
         header = 'OAuth realm="http://api.linkedin.com", '
@@ -558,7 +576,7 @@ class LinkedIn(object):
         connection.request(method, self.ACCESS_TOKEN_URL, body = self._urlencode(query_dict), headers = {'Authorization': header})
         response = connection.getresponse()
         if response is None:
-            self.request_oauth_error = "No HTTP response received."
+            self.access_oauth_error = "No HTTP response received."
             connection.close()
             return False
 
@@ -633,7 +651,7 @@ class LinkedIn(object):
                       }
         
         signature_base_string = "&".join([self._quote(method), self._quote(FULL_URL), self._quote(self._urlencode(query_dict))])
-        hashed = hmac.new(self._quote(self.API_SECRET) + "&" + self._quote(self.access_token_secret), signature_base_string, hashlib.sha1)
+        hashed = hmac.new(self._quote(self.API_SECRET) + "&" + self._quote(self.access_token_secret), signature_base_string, sha)
         signature = binascii.b2a_base64(hashed.digest())[:-1]
 
 
@@ -719,7 +737,7 @@ class LinkedIn(object):
                       }
         
         signature_base_string = "&".join([self._quote(method), self._quote(FULL_URL), self._quote(self._urlencode(query_dict))])
-        hashed = hmac.new(self._quote(self.API_SECRET) + "&" + self._quote(self.access_token_secret), signature_base_string, hashlib.sha1)
+        hashed = hmac.new(self._quote(self.API_SECRET) + "&" + self._quote(self.access_token_secret), signature_base_string, sha)
         signature = binascii.b2a_base64(hashed.digest())[:-1]
 
         # create the HTTP header
@@ -805,7 +823,7 @@ class LinkedIn(object):
         query_dict.update(parameters)
         
         signature_base_string = "&".join([self._quote(method), self._quote(FULL_URL), self._quote(self._urlencode(query_dict))])
-        hashed = hmac.new(self._quote(self.API_SECRET) + "&" + self._quote(self.access_token_secret), signature_base_string, hashlib.sha1)
+        hashed = hmac.new(self._quote(self.API_SECRET) + "&" + self._quote(self.access_token_secret), signature_base_string, sha)
         signature = binascii.b2a_base64(hashed.digest())[:-1]
 
         # create the HTTP header
@@ -926,7 +944,7 @@ class LinkedIn(object):
                       }
         
         signature_base_string = "&".join([self._quote(method), self._quote(FULL_URL), self._quote(self._urlencode(query_dict))])
-        hashed = hmac.new(self._quote(self.API_SECRET) + "&" + self._quote(self.access_token_secret), signature_base_string, hashlib.sha1)
+        hashed = hmac.new(self._quote(self.API_SECRET) + "&" + self._quote(self.access_token_secret), signature_base_string, sha)
         signature = binascii.b2a_base64(hashed.digest())[:-1]
 
         # Create the HTTP header
@@ -1025,7 +1043,7 @@ class LinkedIn(object):
                       }
         
         signature_base_string = "&".join([self._quote(method), self._quote(FULL_URL), self._quote(self._urlencode(query_dict))])
-        hashed = hmac.new(self._quote(self.API_SECRET) + "&" + self._quote(self.access_token_secret), signature_base_string, hashlib.sha1)
+        hashed = hmac.new(self._quote(self.API_SECRET) + "&" + self._quote(self.access_token_secret), signature_base_string, sha)
         signature = binascii.b2a_base64(hashed.digest())[:-1]
 
         # Create the HTTP header
@@ -1130,7 +1148,7 @@ class LinkedIn(object):
                       }
         
         signature_base_string = "&".join([self._quote(method), self._quote(FULL_URL), self._quote(self._urlencode(query_dict))])
-        hashed = hmac.new(self._quote(self.API_SECRET) + "&" + self._quote(self.access_token_secret), signature_base_string, hashlib.sha1)
+        hashed = hmac.new(self._quote(self.API_SECRET) + "&" + self._quote(self.access_token_secret), signature_base_string, sha)
         signature = binascii.b2a_base64(hashed.digest())[:-1]
 
         # Create the HTTP header
@@ -1210,7 +1228,7 @@ class LinkedIn(object):
                       }
         
         signature_base_string = "&".join([self._quote(method), self._quote(FULL_URL), self._quote(self._urlencode(query_dict))])
-        hashed = hmac.new(self._quote(self.API_SECRET) + "&" + self._quote(self.access_token_secret), signature_base_string, hashlib.sha1)
+        hashed = hmac.new(self._quote(self.API_SECRET) + "&" + self._quote(self.access_token_secret), signature_base_string, sha)
         signature = binascii.b2a_base64(hashed.digest())[:-1]
 
         # Create the HTTP header
