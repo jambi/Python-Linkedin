@@ -14,7 +14,7 @@ Provides a Pure Python LinkedIn API Interface.
 try:
     import sha
 except DeprecationWarning, derr:
-    import haslib
+    import hashlib
     sha = hashlib.sha1
 
 
