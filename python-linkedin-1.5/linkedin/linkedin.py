@@ -296,7 +296,14 @@ class Profile(object):
 
     def _get_child(self, node, tagName):
         try:
-            domNode = node.getElementsByTagName(tagName)[0]
+            if tagName == "summary":
+                for n in node.getElementsByTagName(tagName):
+                    if n.parentNode.tagName == node.tagName:
+                        domNode = n
+                        break
+            else:
+                domNode = node.getElementsByTagName(tagName)[0]
+
             if domNode.parentNode.tagName == node.tagName:
                 childNodes = domNode.childNodes
                 if childNodes:
@@ -592,18 +599,18 @@ class LinkedIn(object):
         return True
 
 
-    def GetProfile(self, member_id = None, url = None, *fields):
+    def GetProfile(self, member_id = None, url = None, fields=[]):
         """
         Gets the public profile for a specific user. It is determined by his/her member id or public url.
         If none of them is given, the information og the application's owner are returned.
 
         If none of them are given, current user's details are fetched.
-        The argument '*fields' determines howmuch information will be fethced.
+        The argument 'fields' determines how much information will be fetched.
 
         Examples:
-        client.GetProfile(merber_id = 123, url = None, 'first-name', 'last-name') : fetches the profile of a user whose id is 123. 
+        client.GetProfile(merber_id = 123, url = None, fields=['first-name', 'last-name']) : fetches the profile of a user whose id is 123. 
 
-        client.GetProfile(merber_id = None, url = None, 'first-name', 'last-name') : fetches current user's profile
+        client.GetProfile(merber_id = None, url = None, fields=['first-name', 'last-name']) : fetches current user's profile
 
         client.GetProfile(member_id = None, 'http://www.linkedin.com/in/ozgurv') : fetches the profile of a  user whose profile url is http://www.linkedin.com/in/ozgurv
         
