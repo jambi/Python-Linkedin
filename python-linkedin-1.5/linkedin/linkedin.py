@@ -1272,6 +1272,151 @@ class LinkedIn(object):
         ###############
         return True
     
+    def ShareUpdate(self, comment, title, submitted_url, submitted_image_url, description, visibility="connections-only"):
+        """
+        Use the Share API to have a member share content with their network or with all of LinkedIn
+        -----------
+        Usage Rules
+        * We must use an access token from the user.
+        * We can only share items for the user who grants us access.
+        -----------
+        visibility: anyone or connections-only
+
+
+        @output: bool
+
+        SAMPLE 
+            <?xml version="1.0" encoding="UTF-8"?>
+            <share>
+              <comment>83% of employers will use social media to hire: 78% LinkedIn, 55% Facebook, 45% Twitter [SF Biz Times] http://bit.ly/cCpeOD</comment>
+              <content>
+                 <title>Survey: Social networks top hiring tool - San Francisco Business Times</title>
+                 <submitted-url>http://sanfrancisco.bizjournals.com/sanfrancisco/stories/2010/06/28/daily34.html</submitted-url>
+                 <submitted-image-url>http://images.bizjournals.com/travel/cityscapes/thumbs/sm_sanfrancisco.jpg</submitted-image-url>
+              </content>
+              <visibility>
+                 <code>anyone</code>
+              </visibility>
+            </share>
+
+
+        """
+        ##################
+        # BEGIN ROUTINE  #
+        ##################
+        # check the requirements
+        if (not self.access_token) or (not self.access_token_secret):
+            self.error = "You do not have an access token. Plase perform 'accessToken()' method first."
+            raise OAuthError(self.error)
+
+        if comment is not None:
+            comment = str(comment)
+            if len(comment) > 700:
+                comment = comment[:700]
+
+        if title is not None:
+            title = str(title)
+            if len(title) > 200:
+                title = title[:200]
+
+        if description is not None:
+            description = str(description)
+            if len(description) > 400:
+                description = description[:400]
+
+
+        # Generate nonce and timestamp.
+        nonce = self._generate_nonce()
+        timestamp = self._generate_timestamp()
+
+        # create signature and signature base string
+        URL = "/v1/people/~/shares"
+        FULL_URL = "%s://%s%s" % (self.URI_SCHEME, self.API_ENDPOINT, URL)
+        method = "POST"
+        query_dict = {"oauth_consumer_key": self.API_KEY,
+                      "oauth_nonce": nonce,
+                      "oauth_signature_method": self.signature_method,
+                      "oauth_timestamp": timestamp,
+                      "oauth_token" : self.access_token,
+                      "oauth_version": self.version
+                      }
+
+        signature_base_string = "&".join([self._quote(method), self._quote(FULL_URL), self._quote(self._urlencode(query_dict))])
+        hashed = hmac.new(self._quote(self.API_SECRET) + "&" + self._quote(self.access_token_secret), signature_base_string, hashlib.sha1)
+        signature = binascii.b2a_base64(hashed.digest())[:-1]
+
+        # Create the HTTP header
+        header = 'OAuth realm="http://api.linkedin.com", '
+        header += 'oauth_nonce="%s", '
+        header += 'oauth_signature_method="%s", '
+        header += 'oauth_timestamp="%d", '
+        header += 'oauth_consumer_key="%s", '
+        header += 'oauth_token="%s", '
+        header += 'oauth_signature="%s", '
+        header += 'oauth_version="%s"'
+        header = header % (nonce, self.signature_method, timestamp,
+                           self._quote(self.API_KEY), self._quote(self.access_token),
+                           self._quote(signature), self.version)
+
+
+        # Build up the XML request
+        builder = XMLBuilder("share")
+
+        if len(comment) > 0:
+            comment_element = builder.create_element_with_text_node("comment", comment)
+            builder.append_element_to_root(comment_element)
+
+
+        if (submitted_url is not None) or (title is not None):
+            content_element = builder.create_element("content")
+            if submitted_url is not None:
+                submitted_url_element = builder.create_element_with_text_node("submitted-url", submitted_url)
+                content_element.appendChild(submitted_url_element)
+
+                # must have url to inlcude image url
+                if submitted_image_url is not None:
+                    submitted_image_url_element = builder.create_element_with_text_node("submitted-image-url", submitted_image_url)
+                    content_element.appendChild(submitted_image_url_element)
+
+            if title is not None:
+                title_element = builder.create_element_with_text_node("title", title)
+                content_element.appendChild(title_element)
+
+            if description is not None:
+                description_element = builder.create_element_with_text_node("description", description)
+                content_element.appendChild(description_element)
+
+            builder.append_element_to_root(content_element)
+
+        visibility_element = builder.create_element("visibility")
+        code_element = builder.create_element_with_text_node("code", visibility)
+        visibility_element.appendChild(code_element)
+
+
+        builder.append_element_to_root(visibility_element)
+
+        body = builder.xml()        
+
+        # Make the request
+        connection = httplib.HTTPSConnection(self.API_ENDPOINT)
+        connection.request(method, URL, body = body, headers = {'Authorization': header})
+        response = connection.getresponse()
+
+        response = response.read()
+        connection.close()
+
+        # If API server sends us a response, we know that there occurs an error.
+        # So we have to parse the response to make sure what causes the error.
+        # and let the user know by returning False.
+        if response:
+            self.error = self._parse_error(response)
+            return False
+
+        ###############
+        # END ROUTINE #
+        ###############
+        return True
+
         
     def getRequestTokenError(self):
         return self.request_oauth_error
