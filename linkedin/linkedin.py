@@ -8,7 +8,7 @@
 # LinkedIn Account: http://www.linkedin.com/in/ozgurvt                                #
 #######################################################################################
 
- __version__ = "1.6"
+__version__ = "1.6"
 
 """
 Provides a Pure Python LinkedIn API Interface.
