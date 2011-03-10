@@ -701,7 +701,7 @@ class LinkedIn(object):
     # END ROUTINE #
     ###############
 
-    def GetConnections(self, member_id = None, public_url = None):
+    def GetConnections(self, member_id = None, public_url = None, fields=[]):
         """
         Fetches the connections of a user whose id is the given member_id or url is the given public_url
         If none of the parameters given, the connections of the current user are fetched.
@@ -729,6 +729,9 @@ class LinkedIn(object):
             raw_url = raw_url % ("url=" + self._quote(public_url))
         else:
             raw_url = raw_url % "~"
+        fields = ":(%s)" % ",".join(fields) if len(fields) > 0 else None
+        if fields:
+            raw_url = raw_url + fields
 
         # generate nonce and timestamp
         nonce = self._generate_nonce()
