@@ -94,8 +94,11 @@ class Education(object):
         self.id          = None
         self.school_name = None
         self.degree      = None
+        self.start_date  = None
+        self.end_date    = None
         self.activities  = None
         self.notes       = None
+        self.field_of_study = None
         
     @staticmethod
     def create(node):
@@ -123,6 +126,29 @@ class Education(object):
             education.notes = education._get_child(child, "notes")
             education.school_name = education._get_child(child, "school-name")
             education.degree = education._get_child(child, "degree")
+            education.field_of_study = education._get_child(child, "field-of-study")
+            start_date = child.getElementsByTagName("start-date")
+            if start_date:
+                start_date = start_date[0]
+                try:
+                    year = int(education._get_child(start_date, "year"))
+                    education.start_date = datetime.date(year, 1, 1)
+                    month = int(education._get_child(start_date, "month"))
+                    education.start_date = datetime.date(year, month, 1)
+                except Exception, detail:
+                    pass
+
+            end_date = child.getElementsByTagName("end-date")
+            if end_date:
+                end_date = end_date[0]
+                try:
+                    year = int(education._get_child(end_date, "year"))
+                    education.end_date = datetime.date(year, 1, 1)
+                    month = int(education._get_child(end_date, "month"))
+                    education.end_date = datetime.date(year, month, 1)
+                except Exception, detail:
+                    pass
+
             result.append(education)            
         return result
     
@@ -146,9 +172,10 @@ class Position(object):
         self.title      = None
         self.summary    = None
         self.start_date = None
-        self.end_date = None
+        self.end_date   = None
         self.company    = None
         
+
     @staticmethod
     def create(node):
         """
@@ -185,6 +212,7 @@ class Position(object):
                 start_date = start_date[0]
                 try:
                     year = int(position._get_child(start_date, "year"))
+                    position.start_date = datetime.date(year, 1, 1)
                     month = int(position._get_child(start_date, "month"))
                     position.start_date = datetime.date(year, month, 1)
                 except Exception, detail:
@@ -195,6 +223,7 @@ class Position(object):
                 end_date = end_date[0]
                 try:
                     year = int(position._get_child(end_date, "year"))
+                    position.end_date = datetime.date(year, 1, 1)
                     month = int(position._get_child(end_date, "month"))
                     position.end_date = datetime.date(year, month, 1)
                 except Exception, detail:
