@@ -327,7 +327,8 @@ class Profile(object):
 
     def _get_child(self, node, tagName):
         try:
-            if tagName == "summary":
+	    #summary and industry require special handling. For industry, we are interested in the node that is a direct child of Person (and not the child of "Position").
+            if tagName == "summary" or tagName=="industry":
                 for n in node.getElementsByTagName(tagName):
                     if n.parentNode.tagName == node.tagName:
                         domNode = n
