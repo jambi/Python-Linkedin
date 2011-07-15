@@ -244,6 +244,51 @@ class Position(object):
         except:
             return None
 
+
+class Language(object):
+    """
+    Class that wraps the languages known to the user
+    """
+    def __init__(self):
+        self.id = None
+        self.name = None
+        
+    @staticmethod    
+    def create(node):
+        ''' Refer to : http://developer.linkedin.com/docs/DOC-1061#languages '''
+        """
+        <languages total="1"> 
+            <language>
+                <id>12</id>
+                <language>
+                    <name>English</name>
+                </language>
+            </language>
+        </languages>                        
+        """
+        children = node.getElementsByTagName("language")
+        result = []
+        for child in children:
+            language = Language()
+            language.id = language._get_child(child,"id")
+            lang = child.getElementsByTagName("language")
+            if(lang):
+                lang = lang[0]
+                language.name = language._get_child(lang,"name")
+	    result.append(language)
+	return result
+        
+    def _get_child(self, node, tagName):
+        try:
+            domNode = node.getElementsByTagName(tagName)[0]
+            childNodes = domNode.childNodes
+            if childNodes:
+                return childNodes[0].nodeValue
+            return None
+        except:
+            return None        
+        
+        
     
 class Profile(object):
     """
@@ -265,6 +310,7 @@ class Profile(object):
         self.public_url  = None
         self.picture_url = None
         self.current_status = None
+        self.languages = None
         
     @staticmethod
     def create(xml_string):
@@ -289,7 +335,7 @@ class Profile(object):
             profile.summary = profile._get_child(person, "summary")
             profile.picture_url = profile._unescape(profile._get_child(person, "picture-url"))
             profile.current_status = profile._get_child(person, "current-status")
-            profile.public_url = profile._unescape(profile._get_child(person, "public-profile-url"))
+            profile.public_url = profile._unescape(profile._get_child(person, "public-profile-url"))         
             
             # create location
             location = person.getElementsByTagName("location")
@@ -308,6 +354,12 @@ class Profile(object):
             if positions:
                 positions = positions[0]
                 profile.positions = Position.create(positions)
+                
+    	    # create languages
+    	    languages = person.getElementsByTagName("languages")
+    	    if(languages):
+        		languages = languages[0]
+        		profile.languages = Language.create(languages)
 
             # create educations
             educations = person.getElementsByTagName("educations")
