@@ -8,7 +8,7 @@
 # LinkedIn Account: http://www.linkedin.com/in/ozgurvt                                #
 #######################################################################################
 
-__version__ = "1.6"
+__version__ = "1.8"
 
 """
 Provides a Pure Python LinkedIn API Interface.
@@ -19,12 +19,10 @@ except DeprecationWarning, derr:
     import hashlib
     sha = hashlib.sha1
 
-
-import urllib, urllib2, time, random, httplib, hmac, binascii, cgi, string, datetime
+import urllib, time, random, httplib, hmac, binascii, cgi, string, datetime
 from HTMLParser import HTMLParser
 
 from xml.dom import minidom
-from urlparse import urlparse
 from xml.sax.saxutils import unescape
 
 class OAuthError(Exception):
@@ -135,7 +133,7 @@ class Education(object):
                     education.start_date = datetime.date(year, 1, 1)
                     month = int(education._get_child(start_date, "month"))
                     education.start_date = datetime.date(year, month, 1)
-                except Exception, detail:
+                except Exception:
                     pass
 
             end_date = child.getElementsByTagName("end-date")
@@ -146,7 +144,7 @@ class Education(object):
                     education.end_date = datetime.date(year, 1, 1)
                     month = int(education._get_child(end_date, "month"))
                     education.end_date = datetime.date(year, month, 1)
-                except Exception, detail:
+                except Exception:
                     pass
 
             result.append(education)            
@@ -215,7 +213,7 @@ class Position(object):
                     position.start_date = datetime.date(year, 1, 1)
                     month = int(position._get_child(start_date, "month"))
                     position.start_date = datetime.date(year, month, 1)
-                except Exception, detail:
+                except Exception:
                     pass
 
             end_date = child.getElementsByTagName("end-date")
@@ -226,7 +224,7 @@ class Position(object):
                     position.end_date = datetime.date(year, 1, 1)
                     month = int(position._get_child(end_date, "month"))
                     position.end_date = datetime.date(year, month, 1)
-                except Exception, detail:
+                except Exception:
                     pass
 
             result.append(position)
@@ -243,52 +241,6 @@ class Position(object):
             return None
         except:
             return None
-
-
-class Language(object):
-    """
-    Class that wraps the languages known to the user
-    """
-    def __init__(self):
-        self.id = None
-        self.name = None
-        
-    @staticmethod    
-    def create(node):
-        ''' Refer to : http://developer.linkedin.com/docs/DOC-1061#languages '''
-        """
-        <languages total="1"> 
-            <language>
-                <id>12</id>
-                <language>
-                    <name>English</name>
-                </language>
-            </language>
-        </languages>                        
-        """
-        children = node.getElementsByTagName("language")
-        result = []
-        for child in children:
-            language = Language()
-            language.id = language._get_child(child,"id")
-            lang = child.getElementsByTagName("language")
-            if(lang):
-                lang = lang[0]
-                language.name = language._get_child(lang,"name")
-	    result.append(language)
-	return result
-        
-    def _get_child(self, node, tagName):
-        try:
-            domNode = node.getElementsByTagName(tagName)[0]
-            childNodes = domNode.childNodes
-            if childNodes:
-                return childNodes[0].nodeValue
-            return None
-        except:
-            return None        
-        
-        
     
 class Profile(object):
     """
@@ -310,7 +262,6 @@ class Profile(object):
         self.public_url  = None
         self.picture_url = None
         self.current_status = None
-        self.languages = None
         
     @staticmethod
     def create(xml_string):
@@ -335,7 +286,7 @@ class Profile(object):
             profile.summary = profile._get_child(person, "summary")
             profile.picture_url = profile._unescape(profile._get_child(person, "picture-url"))
             profile.current_status = profile._get_child(person, "current-status")
-            profile.public_url = profile._unescape(profile._get_child(person, "public-profile-url"))         
+            profile.public_url = profile._unescape(profile._get_child(person, "public-profile-url"))
             
             # create location
             location = person.getElementsByTagName("location")
@@ -354,12 +305,6 @@ class Profile(object):
             if positions:
                 positions = positions[0]
                 profile.positions = Position.create(positions)
-                
-    	    # create languages
-    	    languages = person.getElementsByTagName("languages")
-    	    if(languages):
-        		languages = languages[0]
-        		profile.languages = Language.create(languages)
 
             # create educations
             educations = person.getElementsByTagName("educations")
@@ -379,8 +324,7 @@ class Profile(object):
 
     def _get_child(self, node, tagName):
         try:
-	    #summary and industry require special handling. For industry, we are interested in the node that is a direct child of Person (and not the child of "Position").
-            if tagName == "summary" or tagName=="industry":
+            if tagName == "summary":
                 for n in node.getElementsByTagName(tagName):
                     if n.parentNode.tagName == node.tagName:
                         domNode = n
@@ -398,17 +342,19 @@ class Profile(object):
         except:
             return None
 
+class ConnectionError(Exception):
+    pass
 
 class LinkedIn(object):
-    def __init__(self, api_key, api_secret, callback_url):
+    def __init__(self, api_key, api_secret, callback_url, gae = False):
         """
         LinkedIn Base class that simply implements LinkedIn OAuth Authorization and LinkedIn APIs such as Profile, Connection vs.
 
         @ LinkedIn OAuth Authorization
         ------------------------------
         In OAuth terminology, there are 2 tokens that we need in order to have permission to perform an API request.
-        Those are requestToken and accessToken. Thus, this class basicly intends to wrap methods of OAuth spec. which
-        are related of gettting requestToken and accessToken strings.
+        Those are request_token and access_token. Thus, this class basicly intends to wrap methods of OAuth spec. which
+        are related of gettting request_token and access_token strings.
 
         @ Important Note:
         -----------------
@@ -428,107 +374,24 @@ class LinkedIn(object):
         @callback_url: the return url when the user grants permission to Consumer.
         """
         # Credientials
-        self.URI_SCHEME        = "https"
         self.API_ENDPOINT      = "api.linkedin.com"
-        self.REQUEST_TOKEN_URL = "/uas/oauth/requestToken"
-        self.ACCESS_TOKEN_URL  = "/uas/oauth/accessToken"
-        self.REDIRECT_URL      = "/uas/oauth/authorize"
-        self.version           = "1.0"
-        self.signature_method  = "HMAC-SHA1" # as I said
-        self.BASE_URL          = "%s://%s" % (self.URI_SCHEME, self.API_ENDPOINT)
+        self.BASE_URL          = "https://%s" % self.API_ENDPOINT
+        self.VERSION           = "1.0"
         
-        self.API_KEY       = api_key
-        self.API_SECRET    = api_secret
-        self.CALLBACK_URL  = callback_url
-        self.request_token = None # that comes later
-        self.access_token  = None # that comes later and later
+        self._api_key       = api_key
+        self._api_secret    = api_secret
+        self._callback_url  = callback_url
+        self._gae = gae # Is it google app engine
+        self._request_token = None # that comes later
+        self._access_token  = None # that comes later and later
         
-        self.request_token_secret = None
-        self.access_token_secret  = None
+        self._request_token_secret = None
+        self._access_token_secret  = None
         
-        self.verifier = None
-        self.error    = None
+        self._verifier = None
+        self._error    = None
 
-        self.request_oauth_nonce     = None
-        self.request_oauth_timestamp = None
-        self.access_oauth_nonce      = None
-        self.access_oauth_timestamp  = None
-        self.request_oauth_error     = None
-        self.access_oauth_error      = None
-        
-
-    def getRequestTokenURL(self):
-        return "%s://%s%s" % (self.URI_SCHEME, self.API_ENDPOINT, self.REQUEST_TOKEN_URL)
-
-    def getAccessTokenURL(self):
-        return "%s://%s%s" % (self.URI_SCHEME, self.API_ENDPOINT, self.ACCESS_TOKEN_URL)
-
-    def getAuthorizeURL(self, request_token = None):
-        self.request_token = request_token and request_token or self.request_token
-        if self.request_token is None:
-            raise OAuthError("OAuth Request Token is NULL. Plase acquire this first.")
-        return "%s%s?oauth_token=%s" % (self.BASE_URL, self.REDIRECT_URL, self.request_token) 
-    
-    #################################################
-    # HELPER FUNCTIONS                              #
-    # You do not explicitly use those methods below #
-    #################################################
-    def _generate_nonce(self, length = 20):
-        return ''.join([string.letters[random.randint(0, len(string.letters) - 1)] for i in range(length)])
-
-    def _generate_timestamp(self):
-        return int(time.time())
-    
-    def _quote(self, st):
-        return urllib.quote(st, safe='~')
-
-    def _utf8(self, st):
-        return isinstance(st, unicode) and st.encode("utf-8") or str(st)
-
-    def _urlencode(self, query_dict):
-        keys_and_values = [(self._quote(self._utf8(k)), self._quote(self._utf8(v))) for k,v in query_dict.items()]
-        keys_and_values.sort()
-        return '&'.join(['%s=%s' % (k, v) for k, v in keys_and_values])
-
-    def _get_value_from_raw_qs(self, key, qs):
-        raw_qs = cgi.parse_qs(qs, keep_blank_values = False)
-        rs = raw_qs.get(key)
-        if type(rs) == list:
-            return rs[0]
-        else:
-            return rs
-
-    def _signature_base_string(self, method, uri, query_dict):
-        return "&".join([self._quote(method), self._quote(uri), self._quote(self._urlencode(query_dict))])
-        
-    def _parse_error(self, str_as_xml):
-        """
-        Helper function in order to get error message from an xml string.
-        In coming xml can be like this:
-        <?xml version='1.0' encoding='UTF-8' standalone='yes'?>
-        <error>
-         <status>404</status>
-         <timestamp>1262186271064</timestamp>
-         <error-code>0000</error-code>
-         <message>[invalid.property.name]. Couldn't find property with name: first_name</message>
-        </error>
-        """
-        try:
-            xmlDocument = minidom.parseString(str_as_xml)
-            if len(xmlDocument.getElementsByTagName("error")) > 0: 
-                error = xmlDocument.getElementsByTagName("message")
-                if error:
-                    error = error[0]
-                    return error.childNodes[0].nodeValue
-            return None
-        except Exception, detail:
-            raise OAuthError("Invalid XML String given: error: %s" % repr(detail))
-        
-    ########################
-    # END HELPER FUNCTIONS #
-    ########################
-
-    def requestToken(self):
+    def request_token(self):
         """
         Performs the corresponding API which returns the request token in a query string
         The POST Querydict must include the following:
@@ -539,67 +402,30 @@ class LinkedIn(object):
          * oauth_timestamp
          * oauth_version
         """
-        #################
-        # BEGIN ROUTINE #
-        #################
-        # clear everything
         self.clear()
-        # initialization
-        self.request_oauth_nonce = self._generate_nonce()
-        self.request_oauth_timestamp = self._generate_timestamp()
-        # create Signature Base String
-        method = "POST"
-        url = self.getRequestTokenURL()
-        query_dict = {"oauth_callback": self.CALLBACK_URL,
-                      "oauth_consumer_key": self.API_KEY,
-                      "oauth_nonce": self.request_oauth_nonce,
-                      "oauth_signature_method": self.signature_method,
-                      "oauth_timestamp": self.request_oauth_timestamp,
-                      "oauth_version": self.version,
-                      }
-        query_string = self._quote(self._urlencode(query_dict))
-        signature_base_string = "&".join([self._quote(method), self._quote(url), query_string])
-        # create actual signature
-        hashed = hmac.new(self._quote(self.API_SECRET) + "&", signature_base_string, sha)
-        signature = binascii.b2a_base64(hashed.digest())[:-1]
-        # it is time to create the heaader of the http request that will be sent
-        header = 'OAuth realm="http://api.linkedin.com", '
-        header += 'oauth_nonce="%s", '
-        header += 'oauth_callback="%s", '
-        header += 'oauth_signature_method="%s", '
-        header += 'oauth_timestamp="%d", '
-        header += 'oauth_consumer_key="%s", '
-        header += 'oauth_signature="%s", '
-        header += 'oauth_version="%s"'
-        header = header % (self.request_oauth_nonce, self._quote(self.CALLBACK_URL),
-                           self.signature_method, self.request_oauth_timestamp,
-                           self._quote(self.API_KEY), self._quote(signature), self.version)
 
+        method = "GET"
+        relative_url = "/uas/oauth/requestToken"
         
-        # next step is to establish an HTTPS connection through the LinkedIn API
-        # and fetch the request token.
-        connection = httplib.HTTPSConnection(self.API_ENDPOINT)
-        connection.request(method, self.REQUEST_TOKEN_URL, body = self._urlencode(query_dict), headers = {'Authorization': header})
-        response = connection.getresponse()
-        if response is None:
-            self.request_oauth_error = "No HTTP response received."
-            connection.close()
-            return False
+        query_dict = self._query_dict({"oauth_callback" : self._callback_url})
+        
+        self._calc_signature(self._get_url(relative_url), query_dict, self._request_token_secret, method)
 
-        response = response.read()
-        connection.close()
+        try:
+            response = self._https_connection(method, relative_url, query_dict)
+        except ConnectionError:
+            return False
         
         oauth_problem = self._get_value_from_raw_qs("oauth_problem", response)
         if oauth_problem:
-            self.request_oauth_error = oauth_problem
+            self._error = oauth_problem
             return False
 
-        self.request_token = self._get_value_from_raw_qs("oauth_token", response)
-        self.request_token_secret = self._get_value_from_raw_qs("oauth_token_secret", response)
+        self._request_token = self._get_value_from_raw_qs("oauth_token", response)
+        self._request_token_secret = self._get_value_from_raw_qs("oauth_token_secret", response)
         return True
 
-
-    def accessToken(self, request_token = None, request_token_secret = None, verifier = None):
+    def access_token(self, request_token = None, request_token_secret = None, verifier = None):
         """
         Performs the corresponding API which returns the access token in a query string
         Accroding to the link (http://developer.linkedin.com/docs/DOC-1008), POST Querydict must include the following:
@@ -610,80 +436,43 @@ class LinkedIn(object):
         * oauth_token (request token)
         * oauth_version
         """
-        #################
-        # BEGIN ROUTINE #
-        #################
-        self.request_token = request_token and request_token or self.request_token
-        self.request_token_secret = request_token_secret and request_token_secret or self.request_token_secret
-        self.verifier = verifier and verifier or self.verifier
+        self._request_token = request_token and request_token or self._request_token
+        self._request_token_secret = request_token_secret and request_token_secret or self._request_token_secret
+        self._verifier = verifier and verifier or self._verifier
         # if there is no request token, fail immediately
-        if self.request_token is None:
-            raise OAuthError("There is no Request Token. Please perform 'requestToken' method and obtain that token first.")
+        if self._request_token is None:
+            raise OAuthError("There is no Request Token. Please perform 'request_token' method and obtain that token first.")
 
-        if self.request_token_secret is None:
-            raise OAuthError("There is no Request Token Secret. Please perform 'requestToken' method and obtain that token first.")
+        if self._request_token_secret is None:
+            raise OAuthError("There is no Request Token Secret. Please perform 'request_token' method and obtain that token first.")
 
-        if self.verifier is None:
-            raise OAuthError("There is no Verifier Key. Please perform 'requestToken' method, redirect user to API authorize page and get the verifier.")
+        if self._verifier is None:
+            raise OAuthError("There is no Verifier Key. Please perform 'request_token' method, redirect user to API authorize page and get the _verifier.")
         
-        # initialization
-        self.access_oauth_nonce = self._generate_nonce()
-        self.access_oauth_timestamp = self._generate_timestamp()
+        method = "GET"
+        relative_url = "/uas/oauth/accessToken"
+        query_dict = self._query_dict({
+                    "oauth_token" : self._request_token,
+                    "oauth_verifier" : self._verifier
+                    })
 
-        # create Signature Base String
-        method = "POST"
-        url = self.getAccessTokenURL()
-        query_dict = {"oauth_consumer_key": self.API_KEY,
-                      "oauth_nonce": self.access_oauth_nonce,
-                      "oauth_signature_method": self.signature_method,
-                      "oauth_timestamp": self.access_oauth_timestamp,
-                      "oauth_token" : self.request_token,
-                      "oauth_verifier" : self.verifier,
-                      "oauth_version": self.version,
-                      }
-        query_string = self._quote(self._urlencode(query_dict))
-        signature_base_string = "&".join([self._quote(method), self._quote(url), query_string])
-        # create actual signature
-        hashed = hmac.new(self._quote(self.API_SECRET) + "&" + self._quote(self.request_token_secret), signature_base_string, sha)
-        signature = binascii.b2a_base64(hashed.digest())[:-1]
-        # it is time to create the heaader of the http request that will be sent
-        header = 'OAuth realm="http://api.linkedin.com", '
-        header += 'oauth_nonce="%s", '
-        header += 'oauth_signature_method="%s", '
-        header += 'oauth_timestamp="%d", '
-        header += 'oauth_consumer_key="%s", '
-        header += 'oauth_token="%s", '
-        header += 'oauth_verifier="%s", '
-        header += 'oauth_signature="%s", '
-        header += 'oauth_version="%s"'
-        header = header % (self._quote(self.access_oauth_nonce), self._quote(self.signature_method),
-                           self.access_oauth_timestamp, self._quote(self.API_KEY),
-                           self._quote(self.request_token), self._quote(self.verifier),
-                           self._quote(signature), self._quote(self.version))
+        self._calc_signature(self._get_url(relative_url), query_dict, self._request_token_secret, method)
 
-        # next step is to establish an HTTPS connection through the LinkedIn API
-        # and fetch the request token.
-        connection = httplib.HTTPSConnection(self.API_ENDPOINT)
-        connection.request(method, self.ACCESS_TOKEN_URL, body = self._urlencode(query_dict), headers = {'Authorization': header})
-        response = connection.getresponse()
-        if response is None:
-            self.access_oauth_error = "No HTTP response received."
-            connection.close()
+        try:
+            response = self._https_connection(method, relative_url, query_dict)
+        except ConnectionError:
             return False
 
-        response = response.read()
-        connection.close()
         oauth_problem = self._get_value_from_raw_qs("oauth_problem", response)
         if oauth_problem:
-            self.request_oauth_error = oauth_problem
+            self._error = oauth_problem
             return False
 
-        self.access_token = self._get_value_from_raw_qs("oauth_token", response)
-        self.access_token_secret = self._get_value_from_raw_qs("oauth_token_secret", response)
+        self._access_token = self._get_value_from_raw_qs("oauth_token", response)
+        self._access_token_secret = self._get_value_from_raw_qs("oauth_token_secret", response)
         return True
 
-
-    def GetProfile(self, member_id = None, url = None, fields=[]):
+    def get_profile(self, member_id = None, url = None, fields=[]):
         """
         Gets the public profile for a specific user. It is determined by his/her member id or public url.
         If none of them is given, the information og the application's owner are returned.
@@ -692,11 +481,11 @@ class LinkedIn(object):
         The argument 'fields' determines how much information will be fetched.
 
         Examples:
-        client.GetProfile(merber_id = 123, url = None, fields=['first-name', 'last-name']) : fetches the profile of a user whose id is 123. 
+        client.get_profile(merber_id = 123, url = None, fields=['first-name', 'last-name']) : fetches the profile of a user whose id is 123. 
 
-        client.GetProfile(merber_id = None, url = None, fields=['first-name', 'last-name']) : fetches current user's profile
+        client.get_profile(merber_id = None, url = None, fields=['first-name', 'last-name']) : fetches current user's profile
 
-        client.GetProfile(member_id = None, 'http://www.linkedin.com/in/ozgurv') : fetches the profile of a  user whose profile url is http://www.linkedin.com/in/ozgurv
+        client.get_profile(member_id = None, 'http://www.linkedin.com/in/ozgurv') : fetches the profile of a  user whose profile url is http://www.linkedin.com/in/ozgurv
         
         @ Returns Profile instance
         """
@@ -704,13 +493,7 @@ class LinkedIn(object):
         # BEGIN ROUTINE #
         #################
         # if there is no access token or secret, fail immediately
-        if self.access_token is None:
-            self.error = "There is no Access Token. Please perform 'accessToken' method and obtain that token first."
-            raise OAuthError(self.error)
-        
-        if self.access_token_secret is None:
-            self.error = "There is no Access Token Secret. Please perform 'accessToken' method and obtain that token first."
-            raise OAuthError(self.error)
+        self._check_tokens()
         
         # specify the url according to the parameters given
         raw_url = "/v1/people/"
@@ -726,64 +509,13 @@ class LinkedIn(object):
             if fields:
                 raw_url = raw_url + fields
                 
-        # generate nonce and timestamp
-        nonce = self._generate_nonce()
-        timestamp = self._generate_timestamp()
-
-        # create signatrue and signature base string
-        method = "GET"
-        FULL_URL = "%s://%s%s" % (self.URI_SCHEME, self.API_ENDPOINT, raw_url)
-        query_dict = {"oauth_consumer_key": self.API_KEY,
-                      "oauth_nonce": nonce,
-                      "oauth_signature_method": self.signature_method,
-                      "oauth_timestamp": timestamp,
-                      "oauth_token" : self.access_token,
-                      "oauth_version": self.version
-                      }
-        
-        signature_base_string = "&".join([self._quote(method), self._quote(FULL_URL), self._quote(self._urlencode(query_dict))])
-        hashed = hmac.new(self._quote(self.API_SECRET) + "&" + self._quote(self.access_token_secret), signature_base_string, sha)
-        signature = binascii.b2a_base64(hashed.digest())[:-1]
-
-
-        # create the HTTP header
-        header = 'OAuth realm="http://api.linkedin.com", '
-        header += 'oauth_nonce="%s", '
-        header += 'oauth_signature_method="%s", '
-        header += 'oauth_timestamp="%d", '
-        header += 'oauth_consumer_key="%s", '
-        header += 'oauth_token="%s", '
-        header += 'oauth_signature="%s", '
-        header += 'oauth_version="%s"'
-        header = header % (nonce, self.signature_method, timestamp,
-                           self._quote(self.API_KEY), self._quote(self.access_token),
-                           self._quote(signature), self.version)
-        
-
-        # make the HTTP request
-        connection = httplib.HTTPSConnection(self.API_ENDPOINT)
-        connection.request(method, raw_url, headers = {'Authorization': header})
-        response = connection.getresponse()
-
-        # according to the response, decide what you want to do
-        if response is None:
-            self.error = "No HTTP response received."
-            connection.close()
+        try:
+            response = self._do_normal_query(raw_url)
+            return Profile.create(response) # this creates Profile instance or gives you null
+        except ConnectionError:
             return None
 
-        response = response.read()
-        connection.close()
-        error = self._parse_error(response)
-        if error:
-            self.error = error
-            return None
-
-        return Profile.create(response) # this creates Profile instance or gives you null
-    ###############
-    # END ROUTINE #
-    ###############
-
-    def GetConnections(self, member_id = None, public_url = None, fields=[]):
+    def get_connections(self, member_id = None, public_url = None, fields=[]):
         """
         Fetches the connections of a user whose id is the given member_id or url is the given public_url
         If none of the parameters given, the connections of the current user are fetched.
@@ -794,16 +526,8 @@ class LinkedIn(object):
         * http://api.linkedin.com/v1/people/id=12345/connections (fetch with member_id)
         * http://api.linkedin.com/v1/people/url=http%3A%2F%2Fwww.linkedin.com%2Fin%2Flbeebe/connections (fetch with public_url)
         """
-        # check the requirements
-        if (not self.access_token) or (not self.access_token_secret):
-            self.error = "You do not have an access token. Plase perform 'accessToken()' method first."
-            raise OAuthError(self.error)
+        self._check_tokens()
         
-        #################
-        # BEGIN ROUTINE #
-        #################
-        
-        # first we need to specify the url according to the parameters given
         raw_url = "/v1/people/%s/connections"
         if member_id:
             raw_url = raw_url % ("id=" + member_id)
@@ -815,71 +539,21 @@ class LinkedIn(object):
         if fields:
             raw_url = raw_url + fields
 
-        # generate nonce and timestamp
-        nonce = self._generate_nonce()
-        timestamp = self._generate_timestamp()
-        
-        # create signature and signature base string
-        FULL_URL = "%s://%s%s" % (self.URI_SCHEME, self.API_ENDPOINT, raw_url)
-        method = "GET"
-        query_dict = {"oauth_consumer_key": self.API_KEY,
-                      "oauth_nonce": nonce,
-                      "oauth_signature_method": self.signature_method,
-                      "oauth_timestamp": timestamp,
-                      "oauth_token" : self.access_token,
-                      "oauth_version": self.version
-                      }
-        
-        signature_base_string = "&".join([self._quote(method), self._quote(FULL_URL), self._quote(self._urlencode(query_dict))])
-        hashed = hmac.new(self._quote(self.API_SECRET) + "&" + self._quote(self.access_token_secret), signature_base_string, sha)
-        signature = binascii.b2a_base64(hashed.digest())[:-1]
-
-        # create the HTTP header
-        header = 'OAuth realm="http://api.linkedin.com", '
-        header += 'oauth_nonce="%s", '
-        header += 'oauth_signature_method="%s", '
-        header += 'oauth_timestamp="%d", '
-        header += 'oauth_consumer_key="%s", '
-        header += 'oauth_token="%s", '
-        header += 'oauth_signature="%s", '
-        header += 'oauth_version="%s"'
-        header = header % (nonce, self.signature_method, timestamp,
-                           self._quote(self.API_KEY), self._quote(self.access_token),
-                           self._quote(signature), self.version)
-        
-        # make the request
-        connection = httplib.HTTPSConnection(self.API_ENDPOINT)
-        connection.request(method, raw_url, headers = {'Authorization': header})
-        response = connection.getresponse()
-
-        # according to the response, decide what you want to do
-        if response is None:
-            self.error = "No HTTP response received."
-            connection.close()
+        try:
+            response = self._do_normal_query(raw_url)
+            document = minidom.parseString(response)
+            connections = document.getElementsByTagName("person")
+            result = []
+            for connection in connections:
+                profile = Profile.create(connection.toxml())
+                if profile is not None:
+                    result.append(profile)
+    
+            return result
+        except ConnectionError:
             return None
 
-        response = response.read()
-        connection.close()
-        error = self._parse_error(response)
-        if error:
-            self.error = error
-            return None
-
-
-        document = minidom.parseString(response)
-        connections = document.getElementsByTagName("person")
-        result = []
-        for connection in connections:
-            profile = Profile.create(connection.toxml())
-            if profile is not None:
-                result.append(profile)
-
-        ###############
-        # END ROUTINE #
-        ###############
-        return result
-
-    def GetSearch(self, parameters):
+    def get_search(self, parameters):
         """
         Use the Search API to find LinkedIn profiles using keywords,
         company, name, or other methods. This returns search results,
@@ -890,68 +564,18 @@ class LinkedIn(object):
         Request URL Structure:
         http://api.linkedin.com/v1/people?keywords=['+' delimited keywords]&name=[first name + last name]&company=[company name]&current-company=[true|false]&title=[title]&current-title=[true|false]&industry-code=[industry code]&search-location-type=[I,Y]&country-code=[country code]&postal-code=[postal code]&network=[in|out]&start=[number]&count=[1-10]&sort-criteria=[ctx|endorsers|distance|relevance]
         """
-        # check the requirements
-        if (not self.access_token) or (not self.access_token_secret):
-            self.error = "You do not have an access token. Plase perform 'accessToken()' method first."
-            raise OAuthError(self.error)
+        self._check_tokens()
 
-        # first we need to specify the url according to the parameters given
-        raw_url = "/v1/people"
-        request_url = "%s?%s" % (raw_url, self._urlencode(parameters))
-        
-        # generate nonce and timestamp
-        nonce = self._generate_nonce()
-        timestamp = self._generate_timestamp()
-        
-        # create signature and signature base string
-        FULL_URL = "%s://%s%s" % (self.URI_SCHEME, self.API_ENDPOINT, raw_url)
-        
-        method = "GET"
-        query_dict = {"oauth_consumer_key": self.API_KEY,
-                      "oauth_nonce": nonce,
-                      "oauth_signature_method": self.signature_method,
-                      "oauth_timestamp": timestamp,
-                      "oauth_token" : self.access_token,
-                      "oauth_version": self.version
-                      }
-        query_dict.update(parameters)
-        
-        signature_base_string = "&".join([self._quote(method), self._quote(FULL_URL), self._quote(self._urlencode(query_dict))])
-        hashed = hmac.new(self._quote(self.API_SECRET) + "&" + self._quote(self.access_token_secret), signature_base_string, sha)
-        signature = binascii.b2a_base64(hashed.digest())[:-1]
-
-        # create the HTTP header
-        header = 'OAuth realm="http://api.linkedin.com", '
-        header += 'oauth_nonce="%s", '
-        header += 'oauth_signature_method="%s", '
-        header += 'oauth_timestamp="%d", '
-        header += 'oauth_consumer_key="%s", '
-        header += 'oauth_token="%s", '
-        header += 'oauth_signature="%s", '
-        header += 'oauth_version="%s"'
-        header = header % (nonce, self.signature_method, timestamp,
-                           self._quote(self.API_KEY), self._quote(self.access_token),
-                           self._quote(signature), self.version)
-
-        # make the request
-        connection = httplib.HTTPSConnection(self.API_ENDPOINT)
-        connection.request(method, request_url, headers = {'Authorization': header})
-        response = connection.getresponse()
-        
-        # according to the response, decide what you want to do
-        if response is None:
-            self.error = "No HTTP response received."
-            connection.close()
+        try:
+            response = self._do_normal_query("/v1/people", method="GET", params=parameters)
+        except ConnectionError:
             return None
-
-        response = response.read()
-
-        connection.close()
+        
         error = self._parse_error(response)
         if error:
-            self.error = error
+            self._error = error
             return None
-
+        
         document = minidom.parseString(response)
         connections = document.getElementsByTagName("person")
         result = []
@@ -961,7 +585,7 @@ class LinkedIn(object):
                 result.append(profile)
         return result
 
-    def SendMessage(self, subject, message, ids = [], send_yourself = False):
+    def send_message(self, subject, message, ids = [], send_yourself = False):
         """
         Sends a Non-HTML message and subject to the members whose IDs are given as a parameter 'ids'.
         If the user gives more than 10 ids, the IDs after 10th ID are ignored.
@@ -975,7 +599,7 @@ class LinkedIn(object):
         ---------------------
         Sends a POST request to the URL 'http://api.linkedin.com/v1/people/~/mailbox'.
         The XML that will be sent looks like this:
-        <?xml version='1.0' encoding='UTF-8'?>
+        <?xml VERSION='1.0' encoding='UTF-8'?>
           <mailbox-item>
             <recipients>
              <recipient>
@@ -987,26 +611,23 @@ class LinkedIn(object):
           </mailbox-item>
 
         The resulting XML would be like this:
-        if result is None or '', it is guaranteed that you sent the message. If there occurs an error, you get the following:
-        <?xml version='1.0' encoding='UTF-8' standalone='yes'?>
-         <error>
+        if result is None or '', it is guaranteed that you sent the message. If there occurs an _error, you get the following:
+        <?xml VERSION='1.0' encoding='UTF-8' standalone='yes'?>
+         <_error>
            <status>...</status>
            <timestamp>...</timestamp>
-           <error-code>...</error-code>
+           <_error-code>...</_error-code>
            <message>...</message>
-          </error>
+          </_error>
         """
         #######################################################################################
-        # BEGIN ROUTINE                                                                       #
         # What we do here is first we need to shorten to ID list to 10 elements just in case. #
         # Then we need to strip HTML tags using HTMLParser library.                           #
         # Then we are going  to build up the XML body and post the request.                   #
         # According to the response parsed, we return True or False.                          #
         #######################################################################################
-        # check the requirements
-        if (not self.access_token) or (not self.access_token_secret):
-            self.error = "You do not have an access token. Plase perform 'accessToken()' method first."
-            raise OAuthError(self.error)
+
+        self._check_tokens()
 
         # Shorten the list.
         ids = ids[:10]
@@ -1021,39 +642,6 @@ class LinkedIn(object):
         bodyStripper.feed(message)
         body = bodyStripper.getAlteredData()
 
-        # Generate nonce and timestamp.
-        nonce = self._generate_nonce()
-        timestamp = self._generate_timestamp()
-
-        # create signature and signature base string
-        URL = "/v1/people/~/mailbox"
-        FULL_URL = "%s://%s%s" % (self.URI_SCHEME, self.API_ENDPOINT, URL)
-        method = "POST"
-        query_dict = {"oauth_consumer_key": self.API_KEY,
-                      "oauth_nonce": nonce,
-                      "oauth_signature_method": self.signature_method,
-                      "oauth_timestamp": timestamp,
-                      "oauth_token" : self.access_token,
-                      "oauth_version": self.version
-                      }
-        
-        signature_base_string = "&".join([self._quote(method), self._quote(FULL_URL), self._quote(self._urlencode(query_dict))])
-        hashed = hmac.new(self._quote(self.API_SECRET) + "&" + self._quote(self.access_token_secret), signature_base_string, sha)
-        signature = binascii.b2a_base64(hashed.digest())[:-1]
-
-        # Create the HTTP header
-        header = 'OAuth realm="http://api.linkedin.com", '
-        header += 'oauth_nonce="%s", '
-        header += 'oauth_signature_method="%s", '
-        header += 'oauth_timestamp="%d", '
-        header += 'oauth_consumer_key="%s", '
-        header += 'oauth_token="%s", '
-        header += 'oauth_signature="%s", '
-        header += 'oauth_version="%s"'
-        header = header % (nonce, self.signature_method, timestamp,
-                           self._quote(self.API_KEY), self._quote(self.access_token),
-                           self._quote(signature), self.version)
-        
         # Build up the POST body.
         builder = XMLBuilder("mailbox-item")
         recipients_element = builder.create_element("recipients")
@@ -1070,48 +658,36 @@ class LinkedIn(object):
         builder.append_element_to_root(subject_element)
         builder.append_element_to_root(body_element)
         body = builder.xml()
-
-        # Make the request
-        connection = httplib.HTTPSConnection(self.API_ENDPOINT)
-        connection.request(method, URL, body = body, headers = {'Authorization': header})
-        response = connection.getresponse()
-
-        response = response.read()
-        connection.close()
-
-        # If API server sends us a response, we know that there occurs an error.
-        # So we have to parse the response to make sure what causes the error.
-        # and let the user know by returning False.
-        if response:
-            self.error = self._parse_error(response)
+        
+        try:
+            response = self._do_normal_query("/v1/people/~/mailbox", body=body, method="POST")
+            # If API server sends us a response, we know that there occurs an _error.
+            # So we have to parse the response to make sure what causes the _error.
+            # and let the user know by returning False.
+            if response:
+                self._error = self._parse_error(response)
+                return False
+        except ConnectionError:
             return False
 
-        ###############
-        # END ROUTINE #
-        ###############
         return True
 
-
-    def SendInvitation(self, subject, message, first_name, last_name, email):
+    def send_invitation(self, subject, message, first_name, last_name, email):
         """
         Sends an invitation to the given email address.
-        This method is very similiar to 'SendMessage' method.
+        This method is very similiar to 'send_message' method.
         @input: string x string x string x string x string
         @output: bool
         """
         
         #########################################################################################
-        # BEGIN ROUTINE                                                                         #
         # What we do here is first, we need to check the access token.                          #
         # Then we need to strip HTML tags using the HTMLParser library.                         #
         # Then we are going to build up the XML body and post the request.                      #
         # According to the response parsed, we return True or False.                            #
         #########################################################################################
         
-        # check the requirements
-        if (not self.access_token) or (not self.access_token_secret):
-            self.error = "You do not have an access token. Plase perform 'accessToken()' method first."
-            raise OAuthError(self.error)
+        self._check_tokens()
         
         subjectStripper = Stripper()
         subjectStripper.feed(subject)
@@ -1120,39 +696,6 @@ class LinkedIn(object):
         bodyStripper.feed(message)
         body = bodyStripper.getAlteredData()
 
-        # Generate nonce and timestamp.
-        nonce = self._generate_nonce()
-        timestamp = self._generate_timestamp()
-
-        # create signature and signature base string
-        URL = "/v1/people/~/mailbox"
-        FULL_URL = "%s://%s%s" % (self.URI_SCHEME, self.API_ENDPOINT, URL)
-        method = "POST"
-        query_dict = {"oauth_consumer_key": self.API_KEY,
-                      "oauth_nonce": nonce,
-                      "oauth_signature_method": self.signature_method,
-                      "oauth_timestamp": timestamp,
-                      "oauth_token" : self.access_token,
-                      "oauth_version": self.version
-                      }
-        
-        signature_base_string = "&".join([self._quote(method), self._quote(FULL_URL), self._quote(self._urlencode(query_dict))])
-        hashed = hmac.new(self._quote(self.API_SECRET) + "&" + self._quote(self.access_token_secret), signature_base_string, sha)
-        signature = binascii.b2a_base64(hashed.digest())[:-1]
-
-        # Create the HTTP header
-        header = 'OAuth realm="http://api.linkedin.com", '
-        header += 'oauth_nonce="%s", '
-        header += 'oauth_signature_method="%s", '
-        header += 'oauth_timestamp="%d", '
-        header += 'oauth_consumer_key="%s", '
-        header += 'oauth_token="%s", '
-        header += 'oauth_signature="%s", '
-        header += 'oauth_version="%s"'
-        header = header % (nonce, self.signature_method, timestamp,
-                           self._quote(self.API_KEY), self._quote(self.access_token),
-                           self._quote(signature), self.version)
-        
         # Build up the POST body.
         builder = XMLBuilder("mailbox-item")
         recipients_element = builder.create_element("recipients")
@@ -1180,28 +723,23 @@ class LinkedIn(object):
         builder.append_element_to_root(item_content_element)
         body = builder.xml()
 
-        # Make the request
-        connection = httplib.HTTPSConnection(self.API_ENDPOINT)
-        connection.request(method, URL, body = body, headers = {'Authorization': header})
-        response = connection.getresponse()
-        
-        response = response.read()
-        connection.close()
-
-        # If API server sends us a response, we know that there occurs an error.
-        # So we have to parse the response to make sure what causes the error.
-        # and let the user know by returning False.
-        if response:
-            self.error = self._parse_error(response)
+        try:
+            response = self._do_normal_query("/v1/people/~/mailbox", body=body, method="POST")
+            # If API server sends us a response, we know that there occurs an _error.
+            # So we have to parse the response to make sure what causes the _error.
+            # and let the user know by returning False.
+            if response:
+                self._error = self._parse_error(response)
+                return False
+        except ConnectionError:
             return False
 
-        ###############
-        # END ROUTINE #
-        ###############
         return True
 
-    def SetStatus(self, status_message):
+    def set_status(self, status_message):
         """
+        This API is deprecated and should be replaced with the share status of linkedin 
+        
         Issues a status of the connected user. There is a 140 character limit on status message.
         If it is longer than 140 characters, it is shortened.
         -----------
@@ -1212,52 +750,12 @@ class LinkedIn(object):
         @input: string
         @output: bool
         """
-        ##################
-        # BEGIN ROUTINE  #
-        ##################
-        # check the requirements
-        if (not self.access_token) or (not self.access_token_secret):
-            self.error = "You do not have an access token. Plase perform 'accessToken()' method first."
-            raise OAuthError(self.error)
+        self._check_tokens()
 
         # Shorten the message just in case.
         status_message = str(status_message)
         if len(status_message) > 140:
             status_message = status_message[:140]
-
-        # Generate nonce and timestamp.
-        nonce = self._generate_nonce()
-        timestamp = self._generate_timestamp()
-
-        # create signature and signature base string
-        URL = "/v1/people/~/current-status"
-        FULL_URL = "%s://%s%s" % (self.URI_SCHEME, self.API_ENDPOINT, URL)
-        method = "PUT"
-        query_dict = {"oauth_consumer_key": self.API_KEY,
-                      "oauth_nonce": nonce,
-                      "oauth_signature_method": self.signature_method,
-                      "oauth_timestamp": timestamp,
-                      "oauth_token" : self.access_token,
-                      "oauth_version": self.version
-                      }
-        
-        signature_base_string = "&".join([self._quote(method), self._quote(FULL_URL), self._quote(self._urlencode(query_dict))])
-        hashed = hmac.new(self._quote(self.API_SECRET) + "&" + self._quote(self.access_token_secret), signature_base_string, sha)
-        signature = binascii.b2a_base64(hashed.digest())[:-1]
-
-        # Create the HTTP header
-        header = 'OAuth realm="http://api.linkedin.com", '
-        header += 'oauth_nonce="%s", '
-        header += 'oauth_signature_method="%s", '
-        header += 'oauth_timestamp="%d", '
-        header += 'oauth_consumer_key="%s", '
-        header += 'oauth_token="%s", '
-        header += 'oauth_signature="%s", '
-        header += 'oauth_version="%s"'
-        header = header % (nonce, self.signature_method, timestamp,
-                           self._quote(self.API_KEY), self._quote(self.access_token),
-                           self._quote(signature), self.version)
-
 
         # Build up the XML request
         builder = XMLBuilder("current-status")
@@ -1265,29 +763,23 @@ class LinkedIn(object):
         builder.root.appendChild(status_node)
         body = builder.xml()
         
-        # Make the request
-        connection = httplib.HTTPSConnection(self.API_ENDPOINT)
-        connection.request(method, URL, body = body, headers = {'Authorization': header})
-        response = connection.getresponse()
-        
-        response = response.read()
-        connection.close()
-
-        # If API server sends us a response, we know that there occurs an error.
-        # So we have to parse the response to make sure what causes the error.
-        # and let the user know by returning False.
-        if response:
-            self.error = self._parse_error(response)
+        try:
+            response = self._do_normal_query("/v1/people/~/current-status", body=body, method="PUT")
+            # If API server sends us a response, we know that there occurs an _error.
+            # So we have to parse the response to make sure what causes the _error.
+            # and let the user know by returning False.
+            if response:
+                self._error = self._parse_error(response)
+                return False
+        except ConnectionError:
             return False
 
-        ###############
-        # END ROUTINE #
-        ###############
         return True
-
         
-    def ClearStatus(self):
+    def clear_status(self):
         """
+        This API is deprecated and should be replaced with the share status of linkedin
+        
         Clears the status of the connected user.
         -----------
         Usage Rules
@@ -1297,69 +789,24 @@ class LinkedIn(object):
         @input: none
         @output: bool
         """
-        ##################
-        # BEGIN ROUTINE  #
-        ##################
-        # check the requirements
-        if (not self.access_token) or (not self.access_token_secret):
-            self.error = "You do not have an access token. Plase perform 'accessToken()' method first."
-            raise OAuthError(self.error)
+        self._check_tokens()
 
-        # Generate nonce and timestamp.
-        nonce = self._generate_nonce()
-        timestamp = self._generate_timestamp()
-
-        # create signature and signature base string
-        URL = "/v1/people/~/current-status"
-        FULL_URL = "%s://%s%s" % (self.URI_SCHEME, self.API_ENDPOINT, URL)
-        method = "DELETE"
-        query_dict = {"oauth_consumer_key": self.API_KEY,
-                      "oauth_nonce": nonce,
-                      "oauth_signature_method": self.signature_method,
-                      "oauth_timestamp": timestamp,
-                      "oauth_token" : self.access_token,
-                      "oauth_version": self.version
-                      }
-        
-        signature_base_string = "&".join([self._quote(method), self._quote(FULL_URL), self._quote(self._urlencode(query_dict))])
-        hashed = hmac.new(self._quote(self.API_SECRET) + "&" + self._quote(self.access_token_secret), signature_base_string, sha)
-        signature = binascii.b2a_base64(hashed.digest())[:-1]
-
-        # Create the HTTP header
-        header = 'OAuth realm="http://api.linkedin.com", '
-        header += 'oauth_nonce="%s", '
-        header += 'oauth_signature_method="%s", '
-        header += 'oauth_timestamp="%d", '
-        header += 'oauth_consumer_key="%s", '
-        header += 'oauth_token="%s", '
-        header += 'oauth_signature="%s", '
-        header += 'oauth_version="%s"'
-        header = header % (nonce, self.signature_method, timestamp,
-                           self._quote(self.API_KEY), self._quote(self.access_token),
-                           self._quote(signature), self.version)
-
-        
-        # Make the request
-        connection = httplib.HTTPSConnection(self.API_ENDPOINT)
-        connection.request(method, URL, headers = {'Authorization': header})
-        response = connection.getresponse()
-        
-        response = response.read()
-        connection.close()
-
-        # If API server sends us a response, we know that there occurs an error.
-        # So we have to parse the response to make sure what causes the error.
-        # and let the user know by returning False.
-        if response:
-            self.error = self._parse_error(response)
+        try:
+            response = self._do_normal_query("/v1/people/~/current-status", method="DELETE")
+            # If API server sends us a response, we know that there occurs an _error.
+            # So we have to parse the response to make sure what causes the _error.
+            # and let the user know by returning False.
+            if response:
+                self._error = self._parse_error(response)
+                return False
+        except ConnectionError:
             return False
 
-        ###############
-        # END ROUTINE #
-        ###############
         return True
     
-    def ShareUpdate(self, comment, title, submitted_url, submitted_image_url, description, visibility="connections-only"):
+    def share_update(self, comment=None, title=None, submitted_url=None,
+                    submitted_image_url=None, description=None,
+                    visibility="connections-only"):
         """
         Use the Share API to have a member share content with their network or with all of LinkedIn
         -----------
@@ -1369,11 +816,10 @@ class LinkedIn(object):
         -----------
         visibility: anyone or connections-only
 
-
         @output: bool
 
         SAMPLE 
-            <?xml version="1.0" encoding="UTF-8"?>
+            <?xml VERSION="1.0" encoding="UTF-8"?>
             <share>
               <comment>83% of employers will use social media to hire: 78% LinkedIn, 55% Facebook, 45% Twitter [SF Biz Times] http://bit.ly/cCpeOD</comment>
               <content>
@@ -1388,13 +834,7 @@ class LinkedIn(object):
 
 
         """
-        ##################
-        # BEGIN ROUTINE  #
-        ##################
-        # check the requirements
-        if (not self.access_token) or (not self.access_token_secret):
-            self.error = "You do not have an access token. Plase perform 'accessToken()' method first."
-            raise OAuthError(self.error)
+        self._check_tokens()
 
         if comment is not None:
             comment = str(comment)
@@ -1410,41 +850,6 @@ class LinkedIn(object):
             description = str(description)
             if len(description) > 400:
                 description = description[:400]
-
-
-        # Generate nonce and timestamp.
-        nonce = self._generate_nonce()
-        timestamp = self._generate_timestamp()
-
-        # create signature and signature base string
-        URL = "/v1/people/~/shares"
-        FULL_URL = "%s://%s%s" % (self.URI_SCHEME, self.API_ENDPOINT, URL)
-        method = "POST"
-        query_dict = {"oauth_consumer_key": self.API_KEY,
-                      "oauth_nonce": nonce,
-                      "oauth_signature_method": self.signature_method,
-                      "oauth_timestamp": timestamp,
-                      "oauth_token" : self.access_token,
-                      "oauth_version": self.version
-                      }
-
-        signature_base_string = "&".join([self._quote(method), self._quote(FULL_URL), self._quote(self._urlencode(query_dict))])
-        hashed = hmac.new(self._quote(self.API_SECRET) + "&" + self._quote(self.access_token_secret), signature_base_string, hashlib.sha1)
-        signature = binascii.b2a_base64(hashed.digest())[:-1]
-
-        # Create the HTTP header
-        header = 'OAuth realm="http://api.linkedin.com", '
-        header += 'oauth_nonce="%s", '
-        header += 'oauth_signature_method="%s", '
-        header += 'oauth_timestamp="%d", '
-        header += 'oauth_consumer_key="%s", '
-        header += 'oauth_token="%s", '
-        header += 'oauth_signature="%s", '
-        header += 'oauth_version="%s"'
-        header = header % (nonce, self.signature_method, timestamp,
-                           self._quote(self.API_KEY), self._quote(self.access_token),
-                           self._quote(signature), self.version)
-
 
         # Build up the XML request
         builder = XMLBuilder("share")
@@ -1484,49 +889,207 @@ class LinkedIn(object):
 
         body = builder.xml()        
 
-        # Make the request
-        connection = httplib.HTTPSConnection(self.API_ENDPOINT)
-        connection.request(method, URL, body = body, headers = {'Authorization': header})
-        response = connection.getresponse()
-
-        response = response.read()
-        connection.close()
-
-        # If API server sends us a response, we know that there occurs an error.
-        # So we have to parse the response to make sure what causes the error.
-        # and let the user know by returning False.
-        if response:
-            self.error = self._parse_error(response)
+        try:
+            response = self._do_normal_query("/v1/people/~/shares", body=body, method="POST")
+            # If API server sends us a response, we know that there occurs an _error.
+            # So we have to parse the response to make sure what causes the _error.
+            # and let the user know by returning False.
+            if response:
+                self._error = self._parse_error(response)
+                return False
+        except ConnectionError:
             return False
 
-        ###############
-        # END ROUTINE #
-        ###############
         return True
 
-        
-    def getRequestTokenError(self):
-        return self.request_oauth_error
+    def get_authorize_url(self, request_token = None):
+        self._request_token = request_token and request_token or self._request_token
+        if self._request_token is None:
+            raise OAuthError("OAuth Request Token is NULL. Plase acquire this first.")
+        return "%s%s?oauth_token=%s" % (self.BASE_URL, "/uas/oauth/authorize", self._request_token)
 
-    def getAccessTokenError(self):
-        return self.access_oauth_error
-
-    def getError(self):
-        return self.error
+    def get_error(self):
+        return self._error
     
     def clear(self):
-        self.request_token = None
-        self.access_token  = None
-        self.verifier      = None
+        self._request_token = None
+        self._access_token  = None
+        self._verifier      = None
 
-        self.request_token_secret = None
-        self.access_token_secret = None
+        self._request_token_secret = None
+        self._access_token_secret = None
         
-        self.request_oauth_nonce     = None
-        self.request_oauth_timestamp = None
-        self.access_oauth_nonce      = None
-        self.access_oauth_timestamp  = None
+        self._error                   = None
         
-        self.request_oauth_error     = None
-        self.access_oauth_error      = None
-        self.error                   = None
+    #################################################
+    # HELPER FUNCTIONS                              #
+    # You do not explicitly use those methods below #
+    #################################################
+    
+    def _generate_nonce(self, length = 20):
+        return ''.join([string.letters[random.randint(0, len(string.letters) - 1)] for i in range(length)])
+
+    def _get_url(self, relative_path):
+        return self.BASE_URL + relative_path
+    
+    def _generate_timestamp(self):
+        return str(int(time.time()))
+    
+    def _quote(self, st):
+        return urllib.quote(st, safe='~')
+
+    def _utf8(self, st):
+        return isinstance(st, unicode) and st.encode("utf-8") or str(st)
+
+    def _urlencode(self, query_dict):
+        keys_and_values = [(self._quote(self._utf8(k)), self._quote(self._utf8(v))) for k,v in query_dict.items()]
+        keys_and_values.sort()
+        return '&'.join(['%s=%s' % (k, v) for k, v in keys_and_values])
+
+    def _get_value_from_raw_qs(self, key, qs):
+        raw_qs = cgi.parse_qs(qs, keep_blank_values = False)
+        rs = raw_qs.get(key)
+        if type(rs) == list:
+            return rs[0]
+        else:
+            return rs
+
+    def _signature_base_string(self, method, uri, query_dict):
+        return "&".join([self._quote(method), self._quote(uri), self._quote(self._urlencode(query_dict))])
+        
+    def _parse_error(self, str_as_xml):
+        """
+        Helper function in order to get _error message from an xml string.
+        In coming xml can be like this:
+        <?xml VERSION='1.0' encoding='UTF-8' standalone='yes'?>
+        <_error>
+         <status>404</status>
+         <timestamp>1262186271064</timestamp>
+         <_error-code>0000</_error-code>
+         <message>[invalid.property.name]. Couldn't find property with name: first_name</message>
+        </_error>
+        """
+        try:
+            xmlDocument = minidom.parseString(str_as_xml)
+            if len(xmlDocument.getElementsByTagName("_error")) > 0: 
+                error = xmlDocument.getElementsByTagName("message")
+                if error:
+                    error = error[0]
+                    return error.childNodes[0].nodeValue
+            return None
+        except Exception, detail:
+            raise OAuthError("Invalid XML String given: _error: %s" % repr(detail))
+        
+    def _create_oauth_header(self, query_dict):
+        header = 'OAuth realm="http://api.linkedin.com", '
+        header += ", ".join(['%s="%s"' % (k, self._quote(query_dict[k]))
+                           for k in sorted(query_dict)])
+        return header
+    
+    def _query_dict(self, additional = {}):
+        query_dict = {"oauth_consumer_key": self._api_key,
+                      "oauth_nonce": self._generate_nonce(),
+                      "oauth_signature_method": "HMAC-SHA1",
+                      "oauth_timestamp": self._generate_timestamp(),
+                      "oauth_version": self.VERSION
+        }
+        query_dict.update(additional)
+        return query_dict
+    
+    def _do_normal_query(self, relative_url, body=None, method="GET", params=None):
+        method = method
+        query_dict = self._query_dict({"oauth_token" : self._access_token})
+        signature_dict = dict(query_dict)
+        
+        if (params):
+            signature_dict.update(params)
+            
+        query_dict["oauth_signature"] = self._calc_signature(self._get_url(relative_url),
+                                    signature_dict, self._access_token_secret, method, update=False)
+        
+        if (params):
+            relative_url = "%s?%s" % (relative_url, self._urlencode(params))
+        
+        response = self._https_connection(method, relative_url, query_dict, body)
+        
+        if (response):
+            error = self._parse_error(response)
+            if error:
+                self._error = error
+                raise ConnectionError()
+        
+        return response
+
+    def _check_tokens(self):
+        if self._access_token is None:
+            self._error = "There is no Access Token. Please perform 'access_token' method and obtain that token first."
+            raise OAuthError(self._error)
+        if self._access_token_secret is None:
+            self._error = "There is no Access Token Secret. Please perform 'access_token' method and obtain that token first."
+            raise OAuthError(self._error)
+
+    def _calc_key(self, token_secret):
+        key = self._quote(self._api_secret) + "&"
+        if (token_secret):
+            key += self._quote(token_secret)
+        return key
+
+    def _calc_signature(self, url, query_dict, token_secret, method = "GET", update=True):
+        query_string = self._quote(self._urlencode(query_dict))
+        signature_base_string = "&".join([self._quote(method), self._quote(url), query_string])
+        hashed = hmac.new(self._calc_key(token_secret), signature_base_string, sha)
+        signature = binascii.b2a_base64(hashed.digest())[:-1]
+        if (update):
+            query_dict["oauth_signature"] = signature
+        return signature
+        
+    def _https_connection(self, method, relative_url, query_dict, body=None):
+        if (self._gae):
+            return self._https_connection_gae(method, relative_url, query_dict, body)
+        else:
+            return self._https_connection_regular(method, relative_url, query_dict, body)
+    
+    def _https_connection_regular(self, method, relative_url, query_dict, body = None):
+        header = self._create_oauth_header(query_dict)
+        connection = None
+        try:
+            connection = httplib.HTTPSConnection(self.API_ENDPOINT)
+            connection.request(method, relative_url, body = body,
+                               headers={'Authorization':header})
+            response = connection.getresponse()
+            
+            if response is None:
+                self._error = "No HTTP response received."
+                raise ConnectionError()
+            return response.read()
+        finally:
+            if (connection):
+                connection.close()
+    
+    def _https_connection_gae(self, method, relative_url, query_dict, body = None):
+        from google.appengine.api import urlfetch
+        if (method == "GET"):
+            method = urlfetch.GET
+        elif (method == "POST"):
+            method = urlfetch.POST
+        elif (method == "PUT"):
+            method = urlfetch.PUT
+        elif (method == "DELETE"):
+            method = urlfetch.DELETE
+        
+        header = self._create_oauth_header(query_dict)
+        headers = {'Authorization':header}
+        if (body):
+            headers["Content-Type"] = "text/xml"
+        
+        url = self._get_url(relative_url)
+
+        rpc = urlfetch.create_rpc(deadline=10.0)
+        urlfetch.make_fetch_call(rpc, url, method=method, headers=headers,
+                             payload=body)
+        
+        return rpc.get_result().content
+    
+    ########################
+    # END HELPER FUNCTIONS #
+    ########################
