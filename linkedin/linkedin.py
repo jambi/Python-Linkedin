@@ -611,14 +611,14 @@ class LinkedIn(object):
           </mailbox-item>
 
         The resulting XML would be like this:
-        if result is None or '', it is guaranteed that you sent the message. If there occurs an _error, you get the following:
+        if result is None or '', it is guaranteed that you sent the message. If there occurs an error, you get the following:
         <?xml VERSION='1.0' encoding='UTF-8' standalone='yes'?>
-         <_error>
+         <error>
            <status>...</status>
            <timestamp>...</timestamp>
-           <_error-code>...</_error-code>
+           <error-code>...</error-code>
            <message>...</message>
-          </_error>
+          </error>
         """
         #######################################################################################
         # What we do here is first we need to shorten to ID list to 10 elements just in case. #
@@ -661,8 +661,8 @@ class LinkedIn(object):
         
         try:
             response = self._do_normal_query("/v1/people/~/mailbox", body=body, method="POST")
-            # If API server sends us a response, we know that there occurs an _error.
-            # So we have to parse the response to make sure what causes the _error.
+            # If API server sends us a response, we know that there occurs an error.
+            # So we have to parse the response to make sure what causes the error.
             # and let the user know by returning False.
             if response:
                 self._error = self._parse_error(response)
@@ -725,8 +725,8 @@ class LinkedIn(object):
 
         try:
             response = self._do_normal_query("/v1/people/~/mailbox", body=body, method="POST")
-            # If API server sends us a response, we know that there occurs an _error.
-            # So we have to parse the response to make sure what causes the _error.
+            # If API server sends us a response, we know that there occurs an error.
+            # So we have to parse the response to make sure what causes the error.
             # and let the user know by returning False.
             if response:
                 self._error = self._parse_error(response)
@@ -765,8 +765,8 @@ class LinkedIn(object):
         
         try:
             response = self._do_normal_query("/v1/people/~/current-status", body=body, method="PUT")
-            # If API server sends us a response, we know that there occurs an _error.
-            # So we have to parse the response to make sure what causes the _error.
+            # If API server sends us a response, we know that there occurs an error.
+            # So we have to parse the response to make sure what causes the error.
             # and let the user know by returning False.
             if response:
                 self._error = self._parse_error(response)
@@ -793,8 +793,8 @@ class LinkedIn(object):
 
         try:
             response = self._do_normal_query("/v1/people/~/current-status", method="DELETE")
-            # If API server sends us a response, we know that there occurs an _error.
-            # So we have to parse the response to make sure what causes the _error.
+            # If API server sends us a response, we know that there occurs an error.
+            # So we have to parse the response to make sure what causes the error.
             # and let the user know by returning False.
             if response:
                 self._error = self._parse_error(response)
@@ -891,8 +891,8 @@ class LinkedIn(object):
 
         try:
             response = self._do_normal_query("/v1/people/~/shares", body=body, method="POST")
-            # If API server sends us a response, we know that there occurs an _error.
-            # So we have to parse the response to make sure what causes the _error.
+            # If API server sends us a response, we know that there occurs an error.
+            # So we have to parse the response to make sure what causes the error.
             # and let the user know by returning False.
             if response:
                 self._error = self._parse_error(response)
@@ -959,26 +959,27 @@ class LinkedIn(object):
         
     def _parse_error(self, str_as_xml):
         """
-        Helper function in order to get _error message from an xml string.
+        Helper function in order to get error message from an xml string.
         In coming xml can be like this:
         <?xml VERSION='1.0' encoding='UTF-8' standalone='yes'?>
-        <_error>
+        <error>
          <status>404</status>
          <timestamp>1262186271064</timestamp>
-         <_error-code>0000</_error-code>
+         <error-code>0000</error-code>
          <message>[invalid.property.name]. Couldn't find property with name: first_name</message>
         </_error>
         """
         try:
             xmlDocument = minidom.parseString(str_as_xml)
-            if len(xmlDocument.getElementsByTagName("_error")) > 0: 
+            if len(xmlDocument.getElementsByTagName("error")) > 0: 
                 error = xmlDocument.getElementsByTagName("message")
                 if error:
                     error = error[0]
                     return error.childNodes[0].nodeValue
             return None
-        except Exception, detail:
-            raise OAuthError("Invalid XML String given: _error: %s" % repr(detail))
+        except OAuthError, detail:
+#            raise detail
+            raise OAuthError("Invalid XML String given: error: %s" % repr(detail))
         
     def _create_oauth_header(self, query_dict):
         header = 'OAuth realm="http://api.linkedin.com", '
