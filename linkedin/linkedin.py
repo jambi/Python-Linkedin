@@ -8,7 +8,7 @@
 # LinkedIn Account: http://www.linkedin.com/in/ozgurvt                                #
 #######################################################################################
 
-__version__ = "1.8"
+__version__ = "1.8.1"
 
 """
 Provides a Pure Python LinkedIn API Interface.
@@ -160,7 +160,6 @@ class Education(object):
         except:
             return None
 
-    
 class Position(object):
     """
     Class that wraps a business position info of a user
@@ -252,6 +251,7 @@ class Profile(object):
         self.first_name  = None
         self.last_name   = None
         self.location    = None
+        self.location_country = None
         self.industry    = None
         self.summary     = None
         self.specialties = None
@@ -262,6 +262,8 @@ class Profile(object):
         self.public_url  = None
         self.picture_url = None
         self.current_status = None
+        self.languages   = []
+        self.skills      = []
         
     @staticmethod
     def create(xml_string):
@@ -293,12 +295,32 @@ class Profile(object):
             if location:
                 location = location[0]
                 profile.location = profile._get_child(location, "name")
+                country = location.getElementsByTagName('country')[0]
+                profile.location_country = profile._get_child(country, "code")
 
             # create public profile url
             public_profile = person.getElementsByTagName("site-public-profile-request")
             if public_profile:
                 public_profile = public_profile[0]
                 profile.public_url = profile._get_child(public_profile, "url")
+
+            # create skills
+            skills = person.getElementsByTagName("skills")
+            if skills:
+                skills = skills[0]
+                children = skills.getElementsByTagName('skill')
+                for child in children:
+                    if not child.getElementsByTagName('id'):
+                        profile.skills.append(profile._get_child(child, 'name'))
+                
+            # create languages
+            languages = person.getElementsByTagName("languages")
+            if languages:
+                languages = languages[0]
+                children = languages.getElementsByTagName('language')
+                for child in children:
+                    if not child.getElementsByTagName('id'):
+                        profile.languages.append(profile._get_child(child, 'name'))
 
             # create positions
             positions = person.getElementsByTagName("positions")
