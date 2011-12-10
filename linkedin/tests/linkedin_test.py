@@ -26,6 +26,14 @@ class LinkedInMethodsTestBase:
     
     def test_get_profile(self):
         self.assertTrue(self.api.get_profile(fields=['first-name', 'last-name']), self.api.get_error())
+        
+    def test_default_get_profile(self):
+        p = self.api.get_profile()
+        self.assertTrue(p, self.api.get_error())
+        self.assertTrue(p.first_name)
+        self.assertTrue(p.last_name)
+        self.assertTrue(p.headline)
+        self.assertTrue(p.private_url)
     
     def test_get_connections(self):
         self.assertTrue(self.api.get_connections(), self.api.get_error())

@@ -189,6 +189,7 @@ class Profile(LinkedInModel):
         self.positions   = []
         self.educations  = []
         self.public_url  = None
+        self.private_url = None
         self.picture_url = None
         self.current_status = None
         self.languages   = []
@@ -227,11 +228,10 @@ class Profile(LinkedInModel):
                 country = location.getElementsByTagName('country')[0]
                 profile.location_country = profile._get_child(country, "code")
 
-            # create public profile url
-            public_profile = person.getElementsByTagName("site-public-profile-request")
-            if public_profile:
-                public_profile = public_profile[0]
-                profile.public_url = profile._get_child(public_profile, "url")
+            private_profile = person.getElementsByTagName("site-standard-profile-request")
+            if private_profile:
+                private_profile = private_profile[0]
+                profile.private_url = profile._get_child(private_profile, "url")
 
             # create skills
             skills = person.getElementsByTagName("skills")
