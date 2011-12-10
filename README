@@ -24,15 +24,32 @@ INSTALLATION
   Enter the directory you've just downloaded, and execute the following command on shell to install the package:
   - sudo python setup.py install
 
-
-BASIC USAGE
-===========
+  
+KEYS
+====
 
   In order to use it you have an 'application key' and 'application secret'.
   For debugging I am providing you those. You can use the following as api key and secret:
 
   KEY = wFNJekVpDCJtRPFX812pQsJee-gt0zO4X5XmG6wcfSOSlLocxodAXNMbl0_hw3Vl
   SECRET = daJDa6_8UcnGMw1yuq9TjoO_PMKukXMo8vEMo7Qv5J-G3SPgrAV0FqFCd0TNjQyG
+
+QUICK USAGE FROM INTERPRETER
+============================
+
+  For testing the library using an interpreter, use the quick helper.
+  
+  from linkedin import helper
+  
+  api = helper.quick_api(KEY, SECRET)
+  
+  This will print a url to the screen. Go into this URL using a browser, after you login, the method will return with an api object you can now use.
+  
+  api.get_profile() etc...
+  
+
+BASIC USAGE
+===========
 
   You can use "http://localhost" as the return url. Return URL is a url where LinkedIn redirects the user after he/she grants access to
   your application.

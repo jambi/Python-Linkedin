@@ -22,8 +22,6 @@ except DeprecationWarning, derr:
 import urllib, time, random, httplib, hmac, binascii, cgi, string
 from HTMLParser import HTMLParser
 
-from xml.dom import minidom
-
 from model import *
 
 class OAuthError(Exception):
