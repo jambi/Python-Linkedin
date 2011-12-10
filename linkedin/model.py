@@ -3,7 +3,17 @@ import datetime
 from xml.dom import minidom
 from xml.sax.saxutils import unescape
 
-class Education(object):
+class LinkedInModel:
+    pass
+    def __repr__(self):
+        d = {}
+        for x,y in self.__dict__.items():
+            if (self.__dict__[x]):
+                d[x] = y
+        return (self.__module__ + "." + self.__class__.__name__ + " " +
+                d.__repr__())
+
+class Education(LinkedInModel):
     """
     Class that wraps an education info of a user
     """
@@ -79,7 +89,7 @@ class Education(object):
         except:
             return None
 
-class Position(object):
+class Position(LinkedInModel):
     """
     Class that wraps a business position info of a user
     """
@@ -160,7 +170,7 @@ class Position(object):
         except:
             return None
     
-class Profile(object):
+class Profile(LinkedInModel):
     """
     Wraps the data which comes from Profile API of LinkedIn.
     For further information, take a look at LinkedIn Profile API.
