@@ -56,13 +56,6 @@ class LinkedInMethodsTestBase:
                         self.api.get_error())
         self.assertTrue(self.api.clear_status(), self.api.get_error())
 
-class LinkedInGaeTest(LinkedInMethodsTestBase, LinkedInTestBase):
-    
-    @classmethod
-    def setUpClass(cls):
-        cls._init_gae()
-        cls.set_up_class(True)
-
 class LinkedInRegularTest(LinkedInMethodsTestBase, LinkedInTestBase):
     
     @classmethod
