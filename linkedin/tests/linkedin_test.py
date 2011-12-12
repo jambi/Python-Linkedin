@@ -15,9 +15,11 @@ class LinkedInMethodsTestBase:
         print cls.api.get_authorize_url()
         print "----------------"
         
-        cls._create_http_server(cls.api)
-        cls.httpd.handle_request()
-        cls.httpd.server_close()
+        result = []
+        httpd = cls._create_http_server(result)
+        httpd.handle_request()
+        httpd.server_close()
+        cls.api._verifier = result[0]
         cls.api.access_token()
     
     def _generate_email(self):

@@ -26,9 +26,12 @@ class LinkedInAccessTest(LinkedInTestBase):
         print api.get_authorize_url()
         print "----------------"
         
-        self._create_http_server(api)
-        self.httpd.handle_request()
+        result = []
+        httpd = self._create_http_server(result)
+        httpd.handle_request()
+        httpd.server_close()
         
+        api._verifier = result[0]
         api.access_token()
 
 if __name__ == "__main__":

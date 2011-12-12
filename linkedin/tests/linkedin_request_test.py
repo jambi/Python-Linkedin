@@ -17,7 +17,7 @@ class LinkedInRequestTest(LinkedInTestBase):
         self._test_request_token(True)
         
     def _test_request_token(self, gae):
-        "Check that it doesn't raise error"
+        "request_token doesn't raise error"
         api = linkedin.LinkedIn(API_KEY, SECRET_KEY, RETURN_URL, gae)
         api.request_token()
 

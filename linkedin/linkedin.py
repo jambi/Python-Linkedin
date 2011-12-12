@@ -187,7 +187,7 @@ class LinkedIn(object):
             raise OAuthError("There is no Request Token Secret. Please perform 'request_token' method and obtain that token first.")
 
         if self._verifier is None:
-            raise OAuthError("There is no Verifier Key. Please perform 'request_token' method, redirect user to API authorize page and get the _verifier.")
+            raise OAuthError("There is no Verifier Key. Please perform 'request_token' method, redirect user to API authorize page and get the verifier.")
         
         method = "GET"
         relative_url = "/uas/oauth/accessToken"
@@ -224,10 +224,6 @@ class LinkedIn(object):
         
         @ Returns Profile instance
         """
-        #################
-        # BEGIN ROUTINE #
-        #################
-        # if there is no access token or secret, fail immediately
         self._check_tokens()
         
         # specify the url according to the parameters given
@@ -245,7 +241,7 @@ class LinkedIn(object):
                 raw_url = raw_url + fields
                 
         response = self._do_normal_query(raw_url)
-        return Profile.create(response, self._debug) # this creates Profile instance or gives you null
+        return Profile.create(response, self._debug)
 
     def get_connections(self, member_id = None, public_url = None, fields=()):
         """
@@ -573,7 +569,7 @@ class LinkedIn(object):
     def get_authorize_url(self, request_token = None):
         self._request_token = request_token and request_token or self._request_token
         if self._request_token is None:
-            raise OAuthError("OAuth Request Token is NULL. Plase acquire this first.")
+            raise OAuthError("OAuth Request Token is NULL. Please acquire this first.")
         return "%s%s?oauth_token=%s" % (self.BASE_URL, "/uas/oauth/authorize", self._request_token)
 
     def set_debug(self, debug):

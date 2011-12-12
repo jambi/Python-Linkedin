@@ -7,7 +7,7 @@ RETURN_URL = "http://localhost:8000"
 class LinkedInTestBase(unittest.TestCase):
     
     @classmethod
-    def _create_http_server(cls, api):
+    def _create_http_server(cls, result):
         import BaseHTTPServer
         class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             def do_GET(self):
@@ -16,10 +16,10 @@ class LinkedInTestBase(unittest.TestCase):
                 if len(p) > 1:
                     import cgi
                     params = cgi.parse_qs(p[1], True, True)
-                    api._verifier = params["oauth_verifier"][0]
+                    result.append(params["oauth_verifier"][0])
 
         server_address = ('', 8000)
-        cls.httpd = BaseHTTPServer.HTTPServer(server_address, MyHandler)
+        return BaseHTTPServer.HTTPServer(server_address, MyHandler)
         
     @classmethod
     def _init_gae(cls):
