@@ -210,7 +210,7 @@ class LinkedIn(object):
         self._access_token = self._get_value_from_raw_qs("oauth_token", response)
         self._access_token_secret = self._get_value_from_raw_qs("oauth_token_secret", response)
 
-    def get_profile(self, member_id = None, url = None, fields=[]):
+    def get_profile(self, member_id = None, url = None, fields=()):
         """
         Gets the public profile for a specific user. It is determined by his/her member id or public url.
         If none of them is given, the information og the application's owner are returned.
@@ -250,7 +250,7 @@ class LinkedIn(object):
         response = self._do_normal_query(raw_url)
         return Profile.create(response, self._debug) # this creates Profile instance or gives you null
 
-    def get_connections(self, member_id = None, public_url = None, fields=[]):
+    def get_connections(self, member_id = None, public_url = None, fields=()):
         """
         Fetches the connections of a user whose id is the given member_id or url is the given public_url
         If none of the parameters given, the connections of the current user are fetched.
@@ -309,7 +309,7 @@ class LinkedIn(object):
                 result.append(profile)
         return result
 
-    def send_message(self, subject, message, ids = [], send_yourself = False):
+    def send_message(self, subject, message, ids = None, send_yourself = False):
         """
         Sends a Non-HTML message and subject to the members whose IDs are given as a parameter 'ids'.
         If the user gives more than 10 ids, the IDs after 10th ID are ignored.
@@ -351,6 +351,8 @@ class LinkedIn(object):
         # According to the response parsed, we return True or False.                          #
         #######################################################################################
 
+        if not ids: ids = []
+        
         self._check_tokens()
 
         # Shorten the list.
@@ -654,7 +656,9 @@ class LinkedIn(object):
                            for k in sorted(query_dict)])
         return header
     
-    def _query_dict(self, additional = {}):
+    def _query_dict(self, additional = None):
+        if not additional: additional = {}
+        
         query_dict = {"oauth_consumer_key": self._api_key,
                       "oauth_nonce": self._generate_nonce(),
                       "oauth_signature_method": "HMAC-SHA1",
