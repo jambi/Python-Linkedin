@@ -86,7 +86,11 @@ class XMLBuilder(object):
 
 
 class ConnectionError(Exception):
-    pass
+    def __init__(self, error):
+        self._error = error
+    
+    def __str__(self):
+        return repr(self._error)
 
 class LinkedIn(object):
     def __init__(self, api_key, api_secret, callback_url, gae = False):
@@ -132,7 +136,8 @@ class LinkedIn(object):
         self._access_token_secret  = None
         
         self._verifier = None
-        self._error    = None
+        
+        self._debug = False
 
     def request_token(self):
         """
@@ -154,19 +159,14 @@ class LinkedIn(object):
         
         self._calc_signature(self._get_url(relative_url), query_dict, self._request_token_secret, method)
 
-        try:
-            response = self._https_connection(method, relative_url, query_dict)
-        except ConnectionError:
-            return False
+        response = self._https_connection(method, relative_url, query_dict)
         
         oauth_problem = self._get_value_from_raw_qs("oauth_problem", response)
         if oauth_problem:
-            self._error = oauth_problem
-            return False
+            raise OAuthError(oauth_problem)
 
         self._request_token = self._get_value_from_raw_qs("oauth_token", response)
         self._request_token_secret = self._get_value_from_raw_qs("oauth_token_secret", response)
-        return True
 
     def access_token(self, request_token = None, request_token_secret = None, verifier = None):
         """
@@ -201,19 +201,14 @@ class LinkedIn(object):
 
         self._calc_signature(self._get_url(relative_url), query_dict, self._request_token_secret, method)
 
-        try:
-            response = self._https_connection(method, relative_url, query_dict)
-        except ConnectionError:
-            return False
+        response = self._https_connection(method, relative_url, query_dict)
 
         oauth_problem = self._get_value_from_raw_qs("oauth_problem", response)
         if oauth_problem:
-            self._error = oauth_problem
-            return False
+            raise OAuthError(oauth_problem)
 
         self._access_token = self._get_value_from_raw_qs("oauth_token", response)
         self._access_token_secret = self._get_value_from_raw_qs("oauth_token_secret", response)
-        return True
 
     def get_profile(self, member_id = None, url = None, fields=[]):
         """
@@ -252,11 +247,8 @@ class LinkedIn(object):
             if fields:
                 raw_url = raw_url + fields
                 
-        try:
-            response = self._do_normal_query(raw_url)
-            return Profile.create(response) # this creates Profile instance or gives you null
-        except ConnectionError:
-            return None
+        response = self._do_normal_query(raw_url)
+        return Profile.create(response, self._debug) # this creates Profile instance or gives you null
 
     def get_connections(self, member_id = None, public_url = None, fields=[]):
         """
@@ -282,19 +274,16 @@ class LinkedIn(object):
         if fields:
             raw_url = raw_url + fields
 
-        try:
-            response = self._do_normal_query(raw_url)
-            document = minidom.parseString(response)
-            connections = document.getElementsByTagName("person")
-            result = []
-            for connection in connections:
-                profile = Profile.create(connection.toxml())
-                if profile is not None:
-                    result.append(profile)
-    
-            return result
-        except ConnectionError:
-            return None
+        response = self._do_normal_query(raw_url)
+        document = minidom.parseString(response)
+        connections = document.getElementsByTagName("person")
+        result = []
+        for connection in connections:
+            profile = Profile.create(connection.toxml(), self._debug)
+            if profile is not None:
+                result.append(profile)
+
+        return result
 
     def get_search(self, parameters):
         """
@@ -309,21 +298,13 @@ class LinkedIn(object):
         """
         self._check_tokens()
 
-        try:
-            response = self._do_normal_query("/v1/people", method="GET", params=parameters)
-        except ConnectionError:
-            return None
-        
-        error = self._parse_error(response)
-        if error:
-            self._error = error
-            return None
+        response = self._do_normal_query("/v1/people", method="GET", params=parameters)
         
         document = minidom.parseString(response)
         connections = document.getElementsByTagName("person")
         result = []
         for connection in connections:
-            profile = Profile.create(connection.toxml())
+            profile = Profile.create(connection.toxml(), self._debug)
             if profile is not None:
                 result.append(profile)
         return result
@@ -402,18 +383,7 @@ class LinkedIn(object):
         builder.append_element_to_root(body_element)
         body = builder.xml()
         
-        try:
-            response = self._do_normal_query("/v1/people/~/mailbox", body=body, method="POST")
-            # If API server sends us a response, we know that there occurs an error.
-            # So we have to parse the response to make sure what causes the error.
-            # and let the user know by returning False.
-            if response:
-                self._error = self._parse_error(response)
-                return False
-        except ConnectionError:
-            return False
-
-        return True
+        self._do_normal_query("/v1/people/~/mailbox", body=body, method="POST")
 
     def send_invitation(self, subject, message, first_name, last_name, email):
         """
@@ -466,18 +436,7 @@ class LinkedIn(object):
         builder.append_element_to_root(item_content_element)
         body = builder.xml()
 
-        try:
-            response = self._do_normal_query("/v1/people/~/mailbox", body=body, method="POST")
-            # If API server sends us a response, we know that there occurs an error.
-            # So we have to parse the response to make sure what causes the error.
-            # and let the user know by returning False.
-            if response:
-                self._error = self._parse_error(response)
-                return False
-        except ConnectionError:
-            return False
-
-        return True
+        self._do_normal_query("/v1/people/~/mailbox", body=body, method="POST")
 
     def set_status(self, status_message):
         """
@@ -506,18 +465,7 @@ class LinkedIn(object):
         builder.root.appendChild(status_node)
         body = builder.xml()
         
-        try:
-            response = self._do_normal_query("/v1/people/~/current-status", body=body, method="PUT")
-            # If API server sends us a response, we know that there occurs an error.
-            # So we have to parse the response to make sure what causes the error.
-            # and let the user know by returning False.
-            if response:
-                self._error = self._parse_error(response)
-                return False
-        except ConnectionError:
-            return False
-
-        return True
+        self._do_normal_query("/v1/people/~/current-status", body=body, method="PUT")
         
     def clear_status(self):
         """
@@ -534,18 +482,7 @@ class LinkedIn(object):
         """
         self._check_tokens()
 
-        try:
-            response = self._do_normal_query("/v1/people/~/current-status", method="DELETE")
-            # If API server sends us a response, we know that there occurs an error.
-            # So we have to parse the response to make sure what causes the error.
-            # and let the user know by returning False.
-            if response:
-                self._error = self._parse_error(response)
-                return False
-        except ConnectionError:
-            return False
-
-        return True
+        self._do_normal_query("/v1/people/~/current-status", method="DELETE")
     
     def share_update(self, comment=None, title=None, submitted_url=None,
                     submitted_image_url=None, description=None,
@@ -632,18 +569,7 @@ class LinkedIn(object):
 
         body = builder.xml()        
 
-        try:
-            response = self._do_normal_query("/v1/people/~/shares", body=body, method="POST")
-            # If API server sends us a response, we know that there occurs an error.
-            # So we have to parse the response to make sure what causes the error.
-            # and let the user know by returning False.
-            if response:
-                self._error = self._parse_error(response)
-                return False
-        except ConnectionError:
-            return False
-
-        return True
+        self._do_normal_query("/v1/people/~/shares", body=body, method="POST")
 
     def get_authorize_url(self, request_token = None):
         self._request_token = request_token and request_token or self._request_token
@@ -651,8 +577,8 @@ class LinkedIn(object):
             raise OAuthError("OAuth Request Token is NULL. Plase acquire this first.")
         return "%s%s?oauth_token=%s" % (self.BASE_URL, "/uas/oauth/authorize", self._request_token)
 
-    def get_error(self):
-        return self._error
+    def set_debug(self, debug):
+        self._debug = debug
     
     def clear(self):
         self._request_token = None
@@ -661,8 +587,6 @@ class LinkedIn(object):
 
         self._request_token_secret = None
         self._access_token_secret = None
-        
-        self._error                   = None
         
     #################################################
     # HELPER FUNCTIONS                              #
@@ -710,7 +634,7 @@ class LinkedIn(object):
          <timestamp>1262186271064</timestamp>
          <error-code>0000</error-code>
          <message>[invalid.property.name]. Couldn't find property with name: first_name</message>
-        </_error>
+        </error>
         """
         try:
             xmlDocument = minidom.parseString(str_as_xml)
@@ -745,13 +669,13 @@ class LinkedIn(object):
         query_dict = self._query_dict({"oauth_token" : self._access_token})
         signature_dict = dict(query_dict)
         
-        if (params):
+        if params:
             signature_dict.update(params)
             
         query_dict["oauth_signature"] = self._calc_signature(self._get_url(relative_url),
                                     signature_dict, self._access_token_secret, method, update=False)
         
-        if (params):
+        if params:
             relative_url = "%s?%s" % (relative_url, self._urlencode(params))
         
         response = self._https_connection(method, relative_url, query_dict, body)
@@ -759,18 +683,15 @@ class LinkedIn(object):
         if (response):
             error = self._parse_error(response)
             if error:
-                self._error = error
-                raise ConnectionError()
+                raise ConnectionError(error)
         
         return response
 
     def _check_tokens(self):
         if self._access_token is None:
-            self._error = "There is no Access Token. Please perform 'access_token' method and obtain that token first."
-            raise OAuthError(self._error)
+            raise OAuthError("There is no Access Token. Please perform 'access_token' method and obtain that token first.")
         if self._access_token_secret is None:
-            self._error = "There is no Access Token Secret. Please perform 'access_token' method and obtain that token first."
-            raise OAuthError(self._error)
+            raise OAuthError("There is no Access Token Secret. Please perform 'access_token' method and obtain that token first.")
 
     def _calc_key(self, token_secret):
         key = self._quote(self._api_secret) + "&"
@@ -803,8 +724,7 @@ class LinkedIn(object):
             response = connection.getresponse()
             
             if response is None:
-                self._error = "No HTTP response received."
-                raise ConnectionError()
+                raise ConnectionError("No HTTP response received.")
             return response.read()
         finally:
             if (connection):

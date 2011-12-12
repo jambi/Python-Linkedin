@@ -17,6 +17,7 @@ class LinkedInAccessTest(LinkedInTestBase):
         self._test_access_token(False)
         
     def _test_access_token(self, gae):
+        "Check that it doesn't raise error"
         api = linkedin.LinkedIn(API_KEY, SECRET_KEY, RETURN_URL, gae=gae)
         api.request_token()
 
@@ -28,7 +29,7 @@ class LinkedInAccessTest(LinkedInTestBase):
         self._create_http_server(api)
         self.httpd.handle_request()
         
-        self.assertTrue(api.access_token(), api.get_error())
+        api.access_token()
 
 if __name__ == "__main__":
     unittest.main()

@@ -17,8 +17,9 @@ class LinkedInRequestTest(LinkedInTestBase):
         self._test_request_token(True)
         
     def _test_request_token(self, gae):
+        "Check that it doesn't raise error"
         api = linkedin.LinkedIn(API_KEY, SECRET_KEY, RETURN_URL, gae)
-        self.assertTrue(api.request_token(), api.get_error())
+        api.request_token()
 
 if __name__ == "__main__":
     unittest.main()

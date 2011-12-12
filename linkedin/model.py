@@ -179,6 +179,7 @@ class Profile(LinkedInModel):
         self.id          = None
         self.first_name  = None
         self.last_name   = None
+        self.headline    = None
         self.location    = None
         self.location_country = None
         self.industry    = None
@@ -194,9 +195,10 @@ class Profile(LinkedInModel):
         self.current_status = None
         self.languages   = []
         self.skills      = []
+        self.xml_string  = None
         
     @staticmethod
-    def create(xml_string):
+    def create(xml_string, debug=False):
         """
         @This method is a static method so it shouldn't be called from an instance.
         
@@ -262,6 +264,11 @@ class Profile(LinkedInModel):
             if educations:
                 educations = educations[0]
                 profile.educations = Education.create(educations)
+            
+            # For debugging
+            if debug:
+                profile.xml_string = xml_string
+            
             return profile
         except:
             return None
