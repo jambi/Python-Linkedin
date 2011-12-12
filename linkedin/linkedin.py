@@ -24,17 +24,6 @@ from HTMLParser import HTMLParser
 
 from model import *
 
-class OAuthError(Exception):
-    """
-    General OAuth exception, nothing special.
-    """
-    def __init__(self, value):
-        self.parameter = value
-        
-    def __str__(self):
-        return repr(self.parameter)
-
-
 class Stripper(HTMLParser):
     """
     Stripper class that strips HTML entity.
@@ -81,16 +70,24 @@ class XMLBuilder(object):
 
     def create_elements(self, **elements):
         return [self.create_element_with_text_node(tag_name, text_node) for tag_name, text_node in elements.items()]
-        
-    
 
-
-class ConnectionError(Exception):
+class LinkedinError(Exception):
     def __init__(self, error):
         self._error = error
     
     def __str__(self):
         return repr(self._error)
+
+class OAuthError(LinkedinError):
+    """
+    General OAuth exception, nothing special.
+    """
+    def __init__(self, value):
+        self.parameter = value
+        
+    def __str__(self):
+        return repr(self.parameter)
+    
 
 class LinkedIn(object):
     def __init__(self, api_key, api_secret, callback_url, gae = False):
@@ -684,10 +681,10 @@ class LinkedIn(object):
         
         response = self._https_connection(method, relative_url, query_dict, body)
         
-        if (response):
+        if response:
             error = self._parse_error(response)
             if error:
-                raise ConnectionError(error)
+                raise LinkedinError(error)
         
         return response
 
@@ -699,7 +696,7 @@ class LinkedIn(object):
 
     def _calc_key(self, token_secret):
         key = self._quote(self._api_secret) + "&"
-        if (token_secret):
+        if token_secret:
             key += self._quote(token_secret)
         return key
 
@@ -708,12 +705,12 @@ class LinkedIn(object):
         signature_base_string = "&".join([self._quote(method), self._quote(url), query_string])
         hashed = hmac.new(self._calc_key(token_secret), signature_base_string, sha)
         signature = binascii.b2a_base64(hashed.digest())[:-1]
-        if (update):
+        if update:
             query_dict["oauth_signature"] = signature
         return signature
         
     def _https_connection(self, method, relative_url, query_dict, body=None):
-        if (self._gae):
+        if self._gae:
             return self._https_connection_gae(method, relative_url, query_dict, body)
         else:
             return self._https_connection_regular(method, relative_url, query_dict, body)
@@ -728,21 +725,21 @@ class LinkedIn(object):
             response = connection.getresponse()
             
             if response is None:
-                raise ConnectionError("No HTTP response received.")
+                raise LinkedinError("No HTTP response received.")
             return response.read()
         finally:
-            if (connection):
+            if connection:
                 connection.close()
     
     def _https_connection_gae(self, method, relative_url, query_dict, body = None):
         from google.appengine.api import urlfetch
-        if (method == "GET"):
+        if method == "GET":
             method = urlfetch.GET
-        elif (method == "POST"):
+        elif method == "POST":
             method = urlfetch.POST
-        elif (method == "PUT"):
+        elif method == "PUT":
             method = urlfetch.PUT
-        elif (method == "DELETE"):
+        elif method == "DELETE":
             method = urlfetch.DELETE
         
         header = self._create_oauth_header(query_dict)
