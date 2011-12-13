@@ -224,23 +224,30 @@ class LinkedIn(object):
         
         @ Returns Profile instance
         """
-        self._check_tokens()
-        
         # specify the url according to the parameters given
-        raw_url = "/v1/people/"
         if url:
             url = self._quote(url)
-            raw_url = (raw_url + "url=%s:public") % url
+            raw_url = "url=%s:public" % url
         elif member_id:
-            raw_url = (raw_url + "id=%s" % member_id)
+            raw_url = "id=%s" % member_id
         else:
-            raw_url = raw_url + "~"
+            raw_url = "~"
         if url is None:
             fields = ":(%s)" % ",".join(fields) if len(fields) > 0 else None
             if fields:
                 raw_url = raw_url + fields
                 
-        response = self._do_normal_query(raw_url)
+        return self.get_profile_raw(raw_url)
+    
+    def get_profile_raw(self, raw_url, params=None):
+        """
+        Use the profile API of linked in. Just append the raw_url string to the v1/people/ url
+        and the dictionary params as parameters for the GET request
+        """
+        
+        self._check_tokens()
+        
+        response = self._do_normal_query("/v1/people/" + raw_url, params=params)
         return Profile.create(response, self._debug)
 
     def get_connections(self, member_id = None, public_url = None, fields=()):
