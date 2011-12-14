@@ -76,7 +76,7 @@ class Location(Fields):
         self._init_values(("name",))
         
     def country_code(self):
-        self._values["country-code"] = "country(code)"
+        self._values["country-code"] = "country:(code)"
         return self
 
 class Profile(Fields):
@@ -118,6 +118,12 @@ class Profile(Fields):
             "public-profile-url")
         complex_fields = {"location" : Location}
         self._init_values(simple_fields, complex_fields)
+        
+    def get_url_for_api(self):
+        fields = self.get_url()
+        if fields:
+            return "~:(" + fields + ")"
+        return "~"
     
 class LinkedIn2(object):
     
@@ -192,5 +198,5 @@ class LinkedIn2(object):
         
     def profile(self, params):
         # TODO should we check if this is instance of ProfileParams?
-        return self._linkedin.get_profile_raw(params.get_url(), params.get_params())
+        return self._linkedin.get_profile_raw(params.get_url_for_api())
     
