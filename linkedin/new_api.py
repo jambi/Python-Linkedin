@@ -10,6 +10,7 @@ class ConfigurationError(Exception):
 from functools import partial
 
 class Fields(object):
+    
     def _init_values(self, simple_fields, complex_fields=None):
         if complex_fields is None: complex_fields = {} 
         self._values = dict()
@@ -31,8 +32,10 @@ class Fields(object):
         for key, value in self._values.items():
             if value is True:
                 rep.append(key)
-            elif value is not False:
+            elif isinstance(value, Fields):
                 rep.append("{key}:({value})".format(key=key, value=repr(value)))
+            elif value:
+                rep.append(value)
         return self.__class__.__name__ + " : " + repr(rep)
             
     def _set_field(self, key):
@@ -56,13 +59,27 @@ class Fields(object):
         
         self._values[key] = value
         return self
+    
+    def get_url(self):
+        url_values = [key for key in self._values.keys() if self._values[key] is True]
+        for key, value in self._values.items():
+            if isinstance(value, Fields):
+                url_values.append("{key}:({value})".format(key=key, value=value.get_url()))
+            elif not isinstance(value, bool):
+                url_values.append(value)
+                
+        return ",".join(url_values)
 
 class Location(Fields):
-    
-    def __init__(self):
-        self._init_values(("name", "country-code"))
 
-class ProfileFields(Fields):
+    def __init__(self):
+        self._init_values(("name",))
+        
+    def country_code(self):
+        self._values["country-code"] = "country(code)"
+        return self
+
+class Profile(Fields):
     # Dont forget about these params: https://developer.linkedin.com/thread/2286
     def __init__(self):
         simple_fields = ("id",
@@ -102,46 +119,6 @@ class ProfileFields(Fields):
         complex_fields = {"location" : Location}
         self._init_values(simple_fields, complex_fields)
     
-class ProfileAction(object):
-    def __init__(self, linkedin):
-        self._linkedin = linkedin
-        
-        self._url = None
-        self._id = None
-        self._fields = {}
-        
-    def id(self, id):
-        if self._url:
-            # Bad state, only url or id, raise error
-            raise Exception
-        
-        self._id = id
-        return self
-    
-    def url(self, url):
-        if self._id:
-            # Bad state, only url or id, raise error
-            raise Exception
-        
-        self._url = url
-        return self
-        
-    def fields(self, fields):
-        return self
-    
-    def allfields(self):
-        return self
-    
-    def field(self, name, val):
-        self._fields[name] = val
-        return self
-    
-    def raw(self, raw):
-        return self._linkedin.get_profile_raw(raw)
-    
-    def fetch(self):
-        return self._linkedin.get_profile(self._id, self._url, self._fields)
-
 class LinkedIn2(object):
     
     def __init__(self):
