@@ -80,6 +80,22 @@ class Location(Fields):
     def add_country_code(self):
         self._values["country-code"] = "country:(code)"
         return self
+    
+class RelationToViewer(Fields):
+    def __init__(self):
+        self._init_values(("distance", "num-related-connections", "related-connections"))
+        
+class MemberUrl(Fields):
+    def __init__(self):
+        self._init_values(("url", "name"))
+        
+class HttpHeader(Fields):
+    def __init__(self):
+        self._init_values(("name", "value"))
+        
+class HttpRequest(Fields):
+    def __init__(self):
+        self._init_values(("url",), {"headers" : HttpHeader})
 
 class Profile(Fields):
     # Dont forget about these params: https://developer.linkedin.com/thread/2286
@@ -117,13 +133,23 @@ class Profile(Fields):
             "main_address",
             "member-url-resources",
             "picture-url",
-            "public-profile-url")
-        complex_fields = {"location" : Location}
+            "public-profile-url",
+            "site-standard-profile-request",
+            "api-public-profile-request",
+            "site-public-profile-request",
+            )
+        complex_fields = {
+            "location" : Location,
+            "relation-to-viewer" : RelationToViewer,
+            "member-url-resources" : MemberUrl,
+            "api-standard-profile-request" : HttpRequest}
+        
         self._init_values(simple_fields, complex_fields)
         
         self._id = None
         self._url = None
-        
+        self._public = False
+    
     def me(self):
         self._id = None
         self._url = None
@@ -137,7 +163,15 @@ class Profile(Fields):
     def set_id(self, _id):
         self._url = None
         self._id = _id
-        return self 
+        return self
+    
+    def public(self):
+        self._public = True
+        return self
+    
+    def private(self):
+        self._public = False
+        return self
         
     def get_url_for_api(self):
         url = ""
@@ -147,6 +181,9 @@ class Profile(Fields):
             url = "url={0}".format(self._url)
         else:
             url = "~"
+            
+        if self._public:
+            url += ":public"
         
         fields = self.get_url()
         if fields:
