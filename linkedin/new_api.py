@@ -17,15 +17,17 @@ class Fields(object):
          
         for key in simple_fields:
             self._values[key] = False
+            method_key = "add_" + key.replace("-", "_")
             function = partial(self._set_field, key)
             # TODO initialize the name of the function
-            self.__dict__[key.replace("-", "_")] = function
+            self.__dict__[method_key] = function
             
         for key, class_type in complex_fields.items():
             self._values[key] = False
+            method_key = "add_" + key.replace("-", "_")
             function = partial(self._set_complex_field, key, class_type)
             # TODO initialize the name of the function
-            self.__dict__[key.replace("-", "_")] = function
+            self.__dict__[method_key] = function
     
     def __repr__(self):
         rep = []
@@ -75,7 +77,7 @@ class Location(Fields):
     def __init__(self):
         self._init_values(("name",))
         
-    def country_code(self):
+    def add_country_code(self):
         self._values["country-code"] = "country:(code)"
         return self
 
@@ -119,11 +121,38 @@ class Profile(Fields):
         complex_fields = {"location" : Location}
         self._init_values(simple_fields, complex_fields)
         
+        self._id = None
+        self._url = None
+        
+    def me(self):
+        self._id = None
+        self._url = None
+        return self
+        
+    def set_url(self, url):
+        self._id = None
+        self._url = url
+        return self
+        
+    def set_id(self, _id):
+        self._url = None
+        self._id = _id
+        return self 
+        
     def get_url_for_api(self):
+        url = ""
+        if self._id:
+            url = "id={0}".format(self._id)
+        elif self._url:
+            url = "url={0}".format(self._url)
+        else:
+            url = "~"
+        
         fields = self.get_url()
         if fields:
-            return "~:(" + fields + ")"
-        return "~"
+            url += ":(" + fields + ")"
+        
+        return url
     
 class LinkedIn2(object):
     
