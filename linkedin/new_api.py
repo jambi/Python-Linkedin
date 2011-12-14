@@ -7,58 +7,101 @@ class ConfigurationError(Exception):
     def __str__(self):
         return repr(self._error)
 
-class ProfileFields(object):
-    possible_fields = ("id",
-        "first-name",
-        "last-name",
-        "headline",
-        "distance",
-        "current-share",
-        "connections",
-        "num-connections",
-        "num-connections-capped",
-        "summary",
-        "specialties",
-        "proposal-comments",
-        "associations",
-        "honors",
-        "interests",
-        "positions",
-        "publications",
-        "patents",
-        "languages",
-        "skills",
-        "certifications",
-        "educations",
-        "three_current_positions",
-        "three-past-positions",
-        "num-recommenders",
-        "recommendations-received",
-        "phone-numbers",
-        "im-accounts",
-        "twitter-accounts",
-        "date-of-birth",
-        "main_address",
-        "member-url-resources",
-        "picture-url",
-        "public-profile-url")
+from functools import partial
+
+class Fields(object):
+    def _init_values(self, simple_fields, complex_fields=None):
+        if complex_fields is None: complex_fields = {} 
+        self._values = dict()
+         
+        for key in simple_fields:
+            self._values[key] = False
+            function = partial(self._set_field, key)
+            # TODO initialize the name of the function
+            self.__dict__[key.replace("-", "_")] = function
+            
+        for key, class_type in complex_fields.items():
+            self._values[key] = False
+            function = partial(self._set_complex_field, key, class_type)
+            # TODO initialize the name of the function
+            self.__dict__[key.replace("-", "_")] = function
+    
+    def __repr__(self):
+        rep = []
+        for key, value in self._values.items():
+            if value is True:
+                rep.append(key)
+            elif value is not False:
+                rep.append("{key}:({value})".format(key=key, value=repr(value)))
+        return self.__class__.__name__ + " : " + repr(rep)
+            
+    def _set_field(self, key):
+        self._check_key_valid(key)
+        
+        self._values[key] = True
+        return self
+    
+    def _check_key_valid(self, key):
+        if not self._values.has_key(key):
+            raise ValueError("{0} is not a valid field".format(key))
+        
+    def _set_complex_field(self, key, class_type, value=None):
+        if not value:
+            return self._set_field(key)
+        
+        self._check_key_valid(key)
+        
+        if not isinstance(value, class_type):
+            raise ValueError("{0} is not of type {1}".format(value, class_type))
+        
+        self._values[key] = value
+        return self
+
+class Location(Fields):
     
     def __init__(self):
-        self.values = dict()
-         
-        for key in self.possible_fields:
-#            self.__dict__[key.replace("-", "_")] = False
-            key = key.replace("-", "_")
-            self.values[key] = False
-#            setattr(self, key, None)
-            
-    def __getattr__(self, name):
-        return lambda: self._set_field(name)
-    
-    def _set_field(self, key):
-        print "key ", key
-        self.values[key] = True
+        self._init_values(("name", "country-code"))
 
+class ProfileFields(Fields):
+    # Dont forget about these params: https://developer.linkedin.com/thread/2286
+    def __init__(self):
+        simple_fields = ("id",
+            "first-name",
+            "last-name",
+            "headline",
+            "distance",
+            "current-share",
+            "connections",
+            "num-connections",
+            "num-connections-capped",
+            "summary",
+            "specialties",
+            "proposal-comments",
+            "associations",
+            "honors",
+            "interests",
+            "positions",
+            "publications",
+            "patents",
+            "languages",
+            "skills",
+            "certifications",
+            "educations",
+            "three_current_positions",
+            "three-past-positions",
+            "num-recommenders",
+            "recommendations-received",
+            "phone-numbers",
+            "im-accounts",
+            "twitter-accounts",
+            "date-of-birth",
+            "main_address",
+            "member-url-resources",
+            "picture-url",
+            "public-profile-url")
+        complex_fields = {"location" : Location}
+        self._init_values(simple_fields, complex_fields)
+    
 class ProfileAction(object):
     def __init__(self, linkedin):
         self._linkedin = linkedin
@@ -170,6 +213,7 @@ class LinkedIn2(object):
         self._linkedin.access_token()
         return self
         
-    def profile(self):
-        return ProfileAction(self._linkedin)
+    def profile(self, params):
+        # TODO should we check if this is instance of ProfileParams?
+        return self._linkedin.get_profile_raw(params.get_url(), params.get_params())
     
