@@ -1,5 +1,5 @@
 from tests import *
-from linkedin.new_api import *
+from linkedin.api import *
 
 from nose.tools import raises
 
