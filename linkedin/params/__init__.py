@@ -1,4 +1,5 @@
 from functools import partial
+from urllib import urlencode
 
 class Fields(object):
     """
@@ -170,9 +171,9 @@ class Profile(Fields):
     def get_url_for_api(self):
         url = ""
         if self._id:
-            url = "id={0}".format(self._id)
+            url = urlencode({"id" : self._id})
         elif self._url:
-            url = "url={0}".format(self._url)
+            url = urlencode({"url" : self._url})
         else:
             url = "~"
             
