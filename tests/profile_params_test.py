@@ -55,13 +55,76 @@ class ProfileParamsTest(unittest.TestCase):
     def test_some_simple_fields(self):
         expected_fields = sorted(["summary", "first-name", "headline"])
         self.params.add_summary().add_first_name().add_headline()
-        self.assertEquals(expected_fields, self._get_fields_for_fields("~"))
+        self.assertEquals(expected_fields, self._get_fields_for_field("~"))
         
     def test_some_simple_fields_with_id(self):
         expected_fields = sorted(["last-name", "public-profile-url"])
         self.params.add_last_name().add_public_profile_url()
         self.params.set_id(1)
-        self.assertEquals(expected_fields, self._get_fields_for_fields("id=1"))
+        self.assertEquals(expected_fields, self._get_fields_for_field("id=1"))
+        
+    def test_some_simple_fields_public(self):
+        self.params.add_main_address().public()
+        self._assert_url_for_api("~:public:(main-address)")
+        
+    def test_complex_field(self):
+        self.params.add_location().set_url("qqq")
+        self._assert_url_for_api("url=qqq:(location)")
+        self.params.add_location(Location().add_country_code())
+        self._assert_url_for_api("url=qqq:(location:(country:(code)))")
+        self.params.add_location(Location().add_country_code().add_name())
+        expected_fields = sorted(["country:(code)", "name"])
+        self.assertEquals(expected_fields, self._get_fields_for_field("location"))
+        
+    def test_all_fields(self):
+        expected_fields = sorted(["id",
+            "first-name",
+            "last-name",
+            "headline",
+            "distance",
+            "current-share",
+            "connections",
+            "num-connections",
+            "num-connections-capped",
+            "summary",
+            "specialties",
+            "proposal-comments",
+            "associations",
+            "honors",
+            "interests",
+            "positions",
+            "publications",
+            "patents",
+            "languages",
+            "skills",
+            "certifications",
+            "educations",
+            "three_current_positions",
+            "three-past-positions",
+            "num-recommenders",
+            "recommendations-received",
+            "phone-numbers",
+            "im-accounts",
+            "twitter-accounts",
+            "date-of-birth",
+            "main-address",
+            "member-url-resources",
+            "picture-url",
+            "public-profile-url",
+            "site-standard-profile-request",
+            "api-public-profile-request",
+            "site-public-profile-request",
+            "location",
+            "relation-to-viewer",
+            "api-standard-profile-request"
+            ])
+        self.params.all()
+        self.assertEquals(expected_fields, self._get_fields_for_field("~"))
+        
+    def test_default(self):
+        expected_fields = sorted(["first-name", "last-name", "headline", "site-standard-profile-request"])
+        self.params.default()
+        self.assertEquals(expected_fields, self._get_fields_for_field("~"))
         
     def _assert_url_for_api(self, expected):
         self.assertEquals(expected, self.params.get_url_for_api())
@@ -71,12 +134,29 @@ class ProfileParamsTest(unittest.TestCase):
         self.assertTrue(re.match(expected_re, url),
                         "{url} should match {re}".format(url=url, re=expected_re))
     
-    def _get_fields_for_fields(self, field):
+    def _get_fields_for_field(self, field):
+        """
+        For example for the field: moshe
+        and the url: moshe:(a,b,c)
+        returns a sorted list or a,b,c
+        """
         url = self.params.get_url_for_api()
-        exp = field + ":\((.*)\)"
-        result = re.search(exp, url)
-        self.assertTrue(result,
-            "{field} should have parameters in url: {url}".format(field=field, url=url))
+        first_index = url.find(field) + len(field) + 2
+        last_index = -1
+        count = 1
+        for index in range(first_index, len(url)):
+            if url[index] == ")":
+                count -= 1
+            elif url[index] == "(":
+                count += 1
+            if count == 0:
+                last_index = index
+                break
+            
+        if last_index == -1:
+            self.fail("{field} should have parameters in url: {url}".format(field=field, url=url))
+            
+        fields_str = url[first_index:last_index]
         
-        return sorted(result.group(1).split(","))
+        return sorted(fields_str.split(","))
         
