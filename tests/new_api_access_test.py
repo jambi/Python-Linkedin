@@ -6,7 +6,7 @@ from nose.tools import raises
 class NewApiRequestTest(LinkedInTestBase):
     
     def test_access_token_no_error(self):
-        api = LinkedIn2().api_key(API_KEY).secret_key(SECRET_KEY) \
+        api = LinkedIn().api_key(API_KEY).secret_key(SECRET_KEY) \
         .callback_url(RETURN_URL).request_token()
 
         url = api.get_authorize_url()
@@ -16,7 +16,7 @@ class NewApiRequestTest(LinkedInTestBase):
     
     def test_access_token_gae_no_error(self):
         self._init_gae()
-        api = LinkedIn2().api_key(API_KEY).secret_key(SECRET_KEY) \
+        api = LinkedIn().api_key(API_KEY).secret_key(SECRET_KEY) \
         .callback_url(RETURN_URL).gae().request_token()
         
         url = api.get_authorize_url()
@@ -26,54 +26,54 @@ class NewApiRequestTest(LinkedInTestBase):
         
     @raises(ConfigurationError)
     def test_access_token_before_basic_configuration(self):
-        LinkedIn2().access_token()
+        LinkedIn().access_token()
         
     @raises(ConfigurationError)
     def test_access_token_before_basic_configuration2(self):
-        LinkedIn2().api_key(API_KEY).access_token()
+        LinkedIn().api_key(API_KEY).access_token()
         
     @raises(ConfigurationError)
     def test_access_token_before_basic_configuration3(self):
-        LinkedIn2().secret_key(API_KEY).access_token()
+        LinkedIn().secret_key(API_KEY).access_token()
         
     @raises(ConfigurationError)
     def test_access_token_before_basic_configuration4(self):
-        LinkedIn2().secret_key(SECRET_KEY).api_key(API_KEY).access_token()
+        LinkedIn().secret_key(SECRET_KEY).api_key(API_KEY).access_token()
         
     @raises(ConfigurationError)
     def test_access_token_before_basic_configuration5(self):
-        LinkedIn2().callback_url(RETURN_URL).api_key(API_KEY).access_token()
+        LinkedIn().callback_url(RETURN_URL).api_key(API_KEY).access_token()
     
     @raises(ConfigurationError)
     def test_access_token_before_basic_configuration6(self):
-        LinkedIn2().callback_url(RETURN_URL).secret_key(SECRET_KEY).access_token()
+        LinkedIn().callback_url(RETURN_URL).secret_key(SECRET_KEY).access_token()
     
     @raises(ConfigurationError)
     def test_access_token_before_basic_configuration7(self):
-        LinkedIn2().callback_url(RETURN_URL).access_token()
+        LinkedIn().callback_url(RETURN_URL).access_token()
     
     @raises(ConfigurationError)
     def test_access_token_before_request_token(self):
-        LinkedIn2().api_key(API_KEY).secret_key(SECRET_KEY) \
+        LinkedIn().api_key(API_KEY).secret_key(SECRET_KEY) \
         .callback_url(RETURN_URL).access_token()
         
     @raises(ConfigurationError)
     def test_access_token_before_verifier(self):
-        LinkedIn2().api_key(API_KEY).secret_key(SECRET_KEY) \
+        LinkedIn().api_key(API_KEY).secret_key(SECRET_KEY) \
         .callback_url(RETURN_URL).request_token().access_token()
     
     @raises(ConfigurationError)
     def test_access_token_twice(self):
-        LinkedIn2().api_key(API_KEY).secret_key(SECRET_KEY) \
+        LinkedIn().api_key(API_KEY).secret_key(SECRET_KEY) \
         .callback_url(RETURN_URL).access_token().access_token()
         
     @raises(ConfigurationError)
     def test_get_authorize_url_before_request_token(self):
-        LinkedIn2().api_key(API_KEY).secret_key(SECRET_KEY) \
+        LinkedIn().api_key(API_KEY).secret_key(SECRET_KEY) \
         .callback_url(RETURN_URL).get_authorize_url()
         
     def test_reset(self):
-        api = LinkedIn2()
+        api = LinkedIn()
         for i in range(2):
             api.api_key(API_KEY).secret_key(SECRET_KEY) \
             .callback_url(RETURN_URL).request_token()
