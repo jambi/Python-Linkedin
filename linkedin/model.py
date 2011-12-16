@@ -4,7 +4,7 @@ from xml.dom import minidom
 from xml.sax.saxutils import unescape
 
 class LinkedInModel:
-    pass
+    
     def __repr__(self):
         d = {}
         for x,y in self.__dict__.items():
@@ -12,6 +12,17 @@ class LinkedInModel:
                 d[x] = y
         return (self.__module__ + "." + self.__class__.__name__ + " " +
                 d.__repr__())
+        
+    
+    def _get_child(self, node, tagName):
+        try:
+            domNode = node.getElementsByTagName(tagName)[0]
+            childNodes = domNode.childNodes
+            if childNodes:
+                return childNodes[0].nodeValue
+            return None
+        except:
+            return None
 
 class Education(LinkedInModel):
     """
@@ -158,17 +169,31 @@ class Position(LinkedInModel):
             result.append(position)
 
         return result
+        
+class Location(LinkedInModel):
+    def __init__(self):
+        self.name = None
+        self.country_code = None
+        
+    @staticmethod
+    def create(node):
+        """
+        <location>
+            <name>
+            <country>
+                <code>
+            </country>
+        </location>
+        """
+        loc = Location()
+        loc.name = loc._get_child(node, "name")
+        country = node.getElementsByTagName("country")
+        if country:
+            country = country[0]
+            loc.country_code = loc._get_child(country, "code")
             
-
-    def _get_child(self, node, tagName):
-        try:
-            domNode = node.getElementsByTagName(tagName)[0]
-            childNodes = domNode.childNodes
-            if childNodes:
-                return childNodes[0].nodeValue
-            return None
-        except:
-            return None
+        return loc
+        
     
 class Profile(LinkedInModel):
     """
