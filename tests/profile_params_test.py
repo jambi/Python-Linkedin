@@ -70,10 +70,10 @@ class ProfileParamsTest(unittest.TestCase):
     def test_complex_field(self):
         self.params.add_location().set_url("qqq")
         self._assert_url_for_api("url=qqq:(location)")
-        self.params.add_location(Location().add_country_code())
-        self._assert_url_for_api("url=qqq:(location:(country:(code)))")
-        self.params.add_location(Location().add_country_code().add_name())
-        expected_fields = sorted(["country:(code)", "name"])
+        self.params.add_location(Location().add_country())
+        self._assert_url_for_api("url=qqq:(location:(country))")
+        self.params.add_location(Location().add_country().add_name())
+        expected_fields = sorted(["country", "name"])
         self.assertEquals(expected_fields, self._get_fields_for_field("location"))
         
     def test_all_fields(self):
