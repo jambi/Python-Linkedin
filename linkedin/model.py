@@ -193,7 +193,43 @@ class Location(LinkedInModel):
             loc.country_code = loc._get_child(country, "code")
             
         return loc
+    
+class RelationToViewer(LinkedInModel):
+    def __init__(self):
+        self.distance = None
+        self.num_related_connections = None
+        self.connections = None
         
+    @staticmethod
+    def create(node):
+        """
+        <relation-to-viewer>
+            <distance>1</distance>
+            <connections total="36" count="10" start="0">
+                <connection>
+                    <person>
+                        <id>_tQbzI5kEk</id>
+                        <first-name>Michael</first-name>
+                        <last-name>Green</last-name>
+                    </person>
+                </connection>
+            </connections>
+        </relation-to-viewer>
+        """
+        relation = RelationToViewer()
+        relation.distance = relation._get_child(node, "distance")
+        relation.num_related_connections = relation._get_child(node, "num-related-connections")
+        
+        connections = node.getElementsByTagName("connections")
+        if connections:
+            connections = connections[0]
+            if not relation.num_related_connections:
+                if connections.hasAttribute("total"):
+                    relation.num_related_connections = connections.attributes["total"]
+            connections = connections.getElementsByTabName("connection")
+            # Go over all connections and add them to a list
+            # Get the attributes and then fill in a list of every connection
+            
     
 class Profile(LinkedInModel):
     """
@@ -206,8 +242,9 @@ class Profile(LinkedInModel):
         self.last_name   = None
         self.headline    = None
         self.location    = None
-        self.location_country = None
         self.industry    = None
+        self.distance    = None
+        self.relation_to_viewer = None
         self.summary     = None
         self.specialties = None
         self.interests   = None
@@ -238,6 +275,7 @@ class Profile(LinkedInModel):
             profile.first_name = profile._get_child(person, "first-name")
             profile.last_name = profile._get_child(person, "last-name")
             profile.headline = profile._get_child(person, "headline")
+            profile.distance = profile._get_child(person, "distance")
             profile.specialties = profile._get_child(person, "specialties")
             profile.industry = profile._get_child(person, "industry")
             profile.honors = profile._get_child(person, "honors")
@@ -247,13 +285,14 @@ class Profile(LinkedInModel):
             profile.current_status = profile._get_child(person, "current-status")
             profile.public_url = profile._unescape(profile._get_child(person, "public-profile-url"))
             
-            # create location
             location = person.getElementsByTagName("location")
             if location:
-                location = location[0]
-                profile.location = profile._get_child(location, "name")
-                country = location.getElementsByTagName('country')[0]
-                profile.location_country = profile._get_child(country, "code")
+                profile.location = Location.create(location[0])
+                
+            relation_to_viewer = person.getElementsByTagName("relation-to-viewer")
+            if relation_to_viewer:
+                relation_to_viewer = relation_to_viewer[0]
+                
 
             private_profile = person.getElementsByTagName("site-standard-profile-request")
             if private_profile:

@@ -14,16 +14,18 @@ class Fields(object):
         for key in simple_fields:
             self._values[key] = False
             method_key = "add_" + key.replace("-", "_")
-            function = partial(self._set_field, key)
-            # TODO initialize the name of the function
-            self.__dict__[method_key] = function
+            function = lambda x: self._set_field(key, x)
+            function.__doc__ = "Add " + key
+            function.__name__ = method_key
+            setattr(self, method_key, function)
             
         for key, class_type in complex_fields.items():
             self._values[key] = False
             method_key = "add_" + key.replace("-", "_")
-            function = partial(self._set_complex_field, key, class_type)
-            # TODO initialize the name of the function
-            self.__dict__[method_key] = function
+            function = lambda x: self._set_complex_field(key, class_type, x)
+            function.__doc__ = "Add " + key
+            function.__name__ = method_key
+            setattr(self, method_key, function)
     
     def __repr__(self):
         rep = []
