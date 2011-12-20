@@ -30,6 +30,10 @@ def _wait_for_user_to_enter_browser(api):
                     import cgi
                     params = cgi.parse_qs(p[1], True, True)
                     api._verifier = params["oauth_verifier"][0]
+                    self.send_response(200)
+                    self.send_header("Content-type", "text/html")
+                    self.end_headers()
+                    self.wfile.write("Ok")
 
         server_address = ('', 8000)
         httpd = BaseHTTPServer.HTTPServer(server_address, MyHandler)
