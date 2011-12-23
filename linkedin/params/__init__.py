@@ -14,7 +14,7 @@ class Fields(object):
         for key in simple_fields:
             self._values[key] = False
             method_key = "add_" + key.replace("-", "_")
-            function = lambda x: self._set_field(key, x)
+            function = self._get_simple_lambda(key)
             function.__doc__ = "Add " + key
             function.__name__ = method_key
             setattr(self, method_key, function)
@@ -22,10 +22,16 @@ class Fields(object):
         for key, class_type in complex_fields.items():
             self._values[key] = False
             method_key = "add_" + key.replace("-", "_")
-            function = lambda x: self._set_complex_field(key, class_type, x)
+            function = self._get_complex_lambda(key, class_type)
             function.__doc__ = "Add " + key
             function.__name__ = method_key
             setattr(self, method_key, function)
+
+    def _get_simple_lambda(self, key):
+        return lambda: self._set_field(key)
+
+    def _get_complex_lambda(self, key, class_type):
+        return lambda value=None: self._set_complex_field(key, class_type, value)
     
     def __repr__(self):
         rep = []
