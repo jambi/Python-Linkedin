@@ -38,3 +38,4 @@ def _wait_for_user_to_enter_browser(api):
         server_address = ('', 8000)
         httpd = BaseHTTPServer.HTTPServer(server_address, MyHandler)
         httpd.handle_request()
+        httpd.server_close()
