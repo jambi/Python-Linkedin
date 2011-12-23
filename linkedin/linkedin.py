@@ -248,7 +248,7 @@ class LinkedIn(object):
         self._check_tokens()
         
         response = self._do_normal_query("/v1/people/" + raw_url, params=params)
-        return Profile.create(response, self._debug)
+        return Profile.create(minidom.parseString(response), self._debug)
 
     def get_connections(self, member_id = None, public_url = None, fields=()):
         """
@@ -279,7 +279,7 @@ class LinkedIn(object):
         connections = document.getElementsByTagName("person")
         result = []
         for connection in connections:
-            profile = Profile.create(connection.toxml(), self._debug)
+            profile = Profile.create(connection, self._debug)
             if profile is not None:
                 result.append(profile)
 
@@ -304,7 +304,7 @@ class LinkedIn(object):
         connections = document.getElementsByTagName("person")
         result = []
         for connection in connections:
-            profile = Profile.create(connection.toxml(), self._debug)
+            profile = Profile.create(connection, self._debug)
             if profile is not None:
                 result.append(profile)
         return result

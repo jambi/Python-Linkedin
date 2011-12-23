@@ -14,16 +14,18 @@ class Fields(object):
         for key in simple_fields:
             self._values[key] = False
             method_key = "add_" + key.replace("-", "_")
-            function = partial(self._set_field, key)
-            # TODO initialize the name of the function
-            self.__dict__[method_key] = function
+            function = lambda x: self._set_field(key, x)
+            function.__doc__ = "Add " + key
+            function.__name__ = method_key
+            setattr(self, method_key, function)
             
         for key, class_type in complex_fields.items():
             self._values[key] = False
             method_key = "add_" + key.replace("-", "_")
-            function = partial(self._set_complex_field, key, class_type)
-            # TODO initialize the name of the function
-            self.__dict__[method_key] = function
+            function = lambda x: self._set_complex_field(key, class_type, x)
+            function.__doc__ = "Add " + key
+            function.__name__ = method_key
+            setattr(self, method_key, function)
     
     def __repr__(self):
         rep = []
@@ -75,14 +77,10 @@ class Fields(object):
 
 class Location(Fields):
     def __init__(self):
-        self._init_values(("name",))
+        self._init_values(("name", "country"))
         
-    def add_country_code(self):
-        self._values["country-code"] = "country:(code)"
-        return self
-    
     def all_with_nested(self):
-        return self.add_country_code().add_name()
+        return self.all()
     
 class RelationToViewer(Fields):
     def __init__(self):
@@ -112,8 +110,117 @@ class HttpRequest(Fields):
     def all_with_nested(self):
         return self.add_url().add_headers(HttpHeader().all_with_nested())
 
+class Company(Fields):
+    def __init__(self):
+        self._init_values(("id", "name", "type", "size", "industry", "ticker"))
+        
+    def all_with_nested(self):
+        return self.all()
+
+class Position(Fields):
+    def __init__(self):
+        self._init_values(("id", "title", "summary", "start-date",
+                           "end-date", "is-current"),
+                          {"company" : Company})
+        
+    def all_with_nested(self):
+        return self.all().add_company(Company().all_with_nested())
+
+class Author(Fields):
+    def __init__(self):
+        self._init_values(("id", "name", "person"))
+        
+    def all_with_nested(self):
+        return self.all()
+
+class Publication(Fields):
+    def __init__(self):
+        self._init_values(("id", "title", "publisher", "date", "url", "summary"),
+                          {"authors" : Author})
+        
+    def all_with_nested(self):
+        return self.all().add_author(Author().all_with_nested())
+
+class PatentStatus(Fields):
+    def __init__(self):
+        self._init_values(("id", "name"))
+        
+    def all_with_nested(self):
+        return self.all()
+    
+class Investor(Fields):
+    def __init__(self):
+        self._init_values(("id", "name"), {"person" : Profile})
+        
+    def all_with_nested(self):
+        # We can't nest person because it will cause an infinite loop
+        return self.all()
+    
+class Patent(Fields):
+    def __init__(self):
+        self._init_values(("id", "title", "summary", "number", "office", "date", "url"),
+                          {"status" : PatentStatus,
+                           "investors" : Investor})
+        
+    def all_with_nested(self):
+        return self.all().add_status(PatentStatus().all_with_nested()). \
+            add_investors(Investor().all_with_nested())
+        
+class Proficiency(Fields):
+    def __init__(self):
+        self._init_values(("level", "name"))
+        
+    def all_with_nested(self):
+        return self.all()
+        
+class Language(Fields):
+    def __init__(self):
+        self._init_values(("id", "language"), {"proficiency" : Proficiency})
+        
+    def all_with_nested(self):
+        return self.all().add_proficiency(Proficiency().all_with_nested())
+    
+class Year(Fields):
+    def __init__(self):
+        self._init_values(("id", "name"))
+        
+    def all_with_nested(self):
+        return self.all()
+    
+class Skill(Fields):
+    def __init__(self):
+        self._init_values(("id", "skill"),
+                          {"proficiency" : Proficiency,
+                           "years" : Year})
+        
+    def all_with_nested(self):
+        return self.all().add_proficiency(Proficiency().all_with_nested()). \
+            add_years(Year().all_with_nested())
+
+class Certification(Fields):
+    def __init__(self):
+        self._init_values(("id", "name", "authority", "number", "start-date", "end-date"))
+    
+    def all_with_nested(self):
+        return self.all()
+    
+class Education(Fields):
+    def __init__(self):
+        self._init_values(("id", "school-name", "field-of-study", "start-date", "end-date",
+                           "degree", "activities", "notes"))
+    
+    def all_with_nested(self):
+        return self.all()
+    
+class Recommendation(Fields):
+    def __init__(self):
+        self._init_values(("id", "recommendation-type", "recommender"))
+        
+    def all_with_nested(self):
+        return self.all()
+  
 class Profile(Fields):
-    # Dont forget about these params: https://developer.linkedin.com/thread/2286
+    # TODO Dont forget about these params: https://developer.linkedin.com/thread/2286
     def __init__(self):
         simple_fields = ("id",
             "first-name",
@@ -130,17 +237,8 @@ class Profile(Fields):
             "associations",
             "honors",
             "interests",
-            "positions",
-            "publications",
             "patents",
-            "languages",
-            "skills",
-            "certifications",
-            "educations",
-            "three_current_positions",
-            "three-past-positions",
             "num-recommenders",
-            "recommendations-received",
             "phone-numbers",
             "im-accounts",
             "twitter-accounts",
@@ -156,7 +254,16 @@ class Profile(Fields):
             "location" : Location,
             "relation-to-viewer" : RelationToViewer,
             "member-url-resources" : MemberUrl,
-            "api-standard-profile-request" : HttpRequest}
+            "api-standard-profile-request" : HttpRequest,
+            "positions" : Position,
+            "three_current_positions" : Position,
+            "three-past-positions" : Position,
+            "publications" : Publication,
+            "languages" : Language,
+            "skills" : Skill,
+            "certifications" : Certification,
+            "educations" : Education,
+            "recommendations-received" : Recommendation}
         
         self._init_values(simple_fields, complex_fields)
         

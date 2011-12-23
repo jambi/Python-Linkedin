@@ -1,4 +1,5 @@
 from linkedin import LinkedIn as OldLinkedIn
+from params import *
 
 class ConfigurationError(Exception):
     def __init__(self, error):
@@ -78,7 +79,16 @@ class LinkedIn(object):
         self._linkedin.access_token()
         return self
         
-    def profile(self, params):
-        # TODO should we check if this is instance of ProfileParams?
-        return self._linkedin.get_profile_raw(params.get_url_for_api())
+    def profile(self, params = None):
+        if not params:
+            params = Profile()
+        
+        if isinstance(params, Profile):
+            url = params.get_url_for_api()
+        elif isinstance(params, str):
+            url = params
+        else:
+            raise ValueError("Can't handle type {0}".format(params))
+        
+        return self._linkedin.get_profile_raw(url)
     

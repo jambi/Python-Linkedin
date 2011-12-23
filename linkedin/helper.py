@@ -1,4 +1,10 @@
 import linkedin
+import api
+
+def quick_api_new(api_key, secret_key):
+    linkedin = api.LinkedIn()
+    linkedin._linkedin = quick_api(api_key, secret_key)
+    return linkedin
 
 def quick_api(api_key, secret_key):
     """ This method helps you get access to linkedin api quickly when using it

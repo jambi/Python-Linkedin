@@ -3,8 +3,18 @@ import datetime
 from xml.dom import minidom
 from xml.sax.saxutils import unescape
 
+def get_child(node, tagName):
+    try:
+        domNode = node.getElementsByTagName(tagName)[0]
+        childNodes = domNode.childNodes
+        if childNodes:
+            return childNodes[0].nodeValue
+        return None
+    except:
+        return None
+
 class LinkedInModel:
-    pass
+    
     def __repr__(self):
         d = {}
         for x,y in self.__dict__.items():
@@ -12,7 +22,8 @@ class LinkedInModel:
                 d[x] = y
         return (self.__module__ + "." + self.__class__.__name__ + " " +
                 d.__repr__())
-
+        
+    
 class Education(LinkedInModel):
     """
     Class that wraps an education info of a user
@@ -125,21 +136,21 @@ class Position(LinkedInModel):
         result = []
         for child in children:
             position = Position()
-            position.id = position._get_child(child, "id")
-            position.title = position._get_child(child, "title")
-            position.summary = position._get_child(child, "summary")
+            position.id = get_child(child, "id")
+            position.title = get_child(child, "title")
+            position.summary = get_child(child, "summary")
             company = child.getElementsByTagName("company")
             if company:
                 company = company[0]
-                position.company = position._get_child(company, "name")
+                position.company = get_child(company, "name")
             
             start_date = child.getElementsByTagName("start-date")
             if start_date:
                 start_date = start_date[0]
                 try:
-                    year = int(position._get_child(start_date, "year"))
+                    year = int(get_child(start_date, "year"))
                     position.start_date = datetime.date(year, 1, 1)
-                    month = int(position._get_child(start_date, "month"))
+                    month = int(get_child(start_date, "month"))
                     position.start_date = datetime.date(year, month, 1)
                 except Exception:
                     pass
@@ -148,9 +159,9 @@ class Position(LinkedInModel):
             if end_date:
                 end_date = end_date[0]
                 try:
-                    year = int(position._get_child(end_date, "year"))
+                    year = int(get_child(end_date, "year"))
                     position.end_date = datetime.date(year, 1, 1)
-                    month = int(position._get_child(end_date, "month"))
+                    month = int(get_child(end_date, "month"))
                     position.end_date = datetime.date(year, month, 1)
                 except Exception:
                     pass
@@ -158,17 +169,87 @@ class Position(LinkedInModel):
             result.append(position)
 
         return result
+        
+class Location(LinkedInModel):
+    def __init__(self):
+        self.name = None
+        self.country_code = None
+        
+    @staticmethod
+    def create(node):
+        """
+        <location>
+            <name>
+            <country>
+                <code>
+            </country>
+        </location>
+        """
+        loc = Location()
+        loc.name = get_child(node, "name")
+        country = node.getElementsByTagName("country")
+        if country:
+            country = country[0]
+            loc.country_code = get_child(country, "code")
             
-
-    def _get_child(self, node, tagName):
-        try:
-            domNode = node.getElementsByTagName(tagName)[0]
-            childNodes = domNode.childNodes
-            if childNodes:
-                return childNodes[0].nodeValue
-            return None
-        except:
-            return None
+        return loc
+    
+class RelationToViewer(LinkedInModel):
+    def __init__(self):
+        self.distance = None
+        self.num_related_connections = None
+        self.connections = None
+        
+    @classmethod
+    def create(cls, node):
+        """
+        <relation-to-viewer>
+            <distance>1</distance>
+            <connections total="36" count="10" start="0">
+                <connection>
+                    <person>
+                        <id>_tQbzI5kEk</id>
+                        <first-name>Michael</first-name>
+                        <last-name>Green</last-name>
+                    </person>
+                </connection>
+            </connections>
+        </relation-to-viewer>
+        """
+        relation = RelationToViewer()
+        relation.distance = get_child(node, "distance")
+        relation.num_related_connections = get_child(node, "num-related-connections")
+        
+        connections = node.getElementsByTagName("connections")
+        if connections:
+            connections = connections[0]
+            if not relation.num_related_connections:
+                if connections.hasAttribute("total"):
+                    relation.num_related_connections = connections.attributes["total"]
+            connections = connections.getElementsByTabName("connection")
+            if connections:
+                relation.connections = []
+                for connection in connections:
+                    cls.parse_connection(relation, connection)
+                    
+        return relation
+            
+    @classmethod
+    def parse_connection(cls, relation, connection):
+        """
+        <connection>
+            <person>
+                <id>_tQbzI5kEk</id>
+                <first-name>Michael</first-name>
+                <last-name>Green</last-name>
+            </person>
+        </connection>
+        """
+        person = connection.getElementsByTabName("person")
+        if person:
+            person = person[0]
+            Profile.create(person)
+        
     
 class Profile(LinkedInModel):
     """
@@ -181,8 +262,9 @@ class Profile(LinkedInModel):
         self.last_name   = None
         self.headline    = None
         self.location    = None
-        self.location_country = None
         self.industry    = None
+        self.distance    = None
+        self.relation_to_viewer = None
         self.summary     = None
         self.specialties = None
         self.interests   = None
@@ -198,7 +280,7 @@ class Profile(LinkedInModel):
         self.xml_string  = None
         
     @staticmethod
-    def create(xml_string, debug=False):
+    def create(node, debug=False):
         """
         @This method is a static method so it shouldn't be called from an instance.
         
@@ -206,34 +288,37 @@ class Profile(LinkedInModel):
         If the given instance is not valid, this method returns NULL.
         """
         try:
-            document = minidom.parseString(xml_string)            
-            person = document.getElementsByTagName("person")[0]
+            person = node
+            if person.nodeName != "person":
+                person = person.getElementsByTagName("person")[0]
             profile = Profile()
-            profile.id = profile._get_child(person, "id")
-            profile.first_name = profile._get_child(person, "first-name")
-            profile.last_name = profile._get_child(person, "last-name")
-            profile.headline = profile._get_child(person, "headline")
-            profile.specialties = profile._get_child(person, "specialties")
-            profile.industry = profile._get_child(person, "industry")
-            profile.honors = profile._get_child(person, "honors")
-            profile.interests = profile._get_child(person, "interests")
-            profile.summary = profile._get_child(person, "summary")
-            profile.picture_url = profile._unescape(profile._get_child(person, "picture-url"))
-            profile.current_status = profile._get_child(person, "current-status")
-            profile.public_url = profile._unescape(profile._get_child(person, "public-profile-url"))
+            profile.id = get_child(person, "id")
+            profile.first_name = get_child(person, "first-name")
+            profile.last_name = get_child(person, "last-name")
+            profile.headline = get_child(person, "headline")
+            profile.distance = get_child(person, "distance")
+            profile.specialties = get_child(person, "specialties")
+            profile.industry = get_child(person, "industry")
+            profile.honors = get_child(person, "honors")
+            profile.interests = get_child(person, "interests")
+            profile.summary = get_child(person, "summary")
+            profile.picture_url = profile._unescape(get_child(person, "picture-url"))
+            profile.current_status = get_child(person, "current-status")
+            profile.public_url = profile._unescape(get_child(person, "public-profile-url"))
             
-            # create location
             location = person.getElementsByTagName("location")
             if location:
-                location = location[0]
-                profile.location = profile._get_child(location, "name")
-                country = location.getElementsByTagName('country')[0]
-                profile.location_country = profile._get_child(country, "code")
+                profile.location = Location.create(location[0])
+                
+            relation_to_viewer = person.getElementsByTagName("relation-to-viewer")
+            if relation_to_viewer:
+                relation_to_viewer = relation_to_viewer[0]
+                
 
             private_profile = person.getElementsByTagName("site-standard-profile-request")
             if private_profile:
                 private_profile = private_profile[0]
-                profile.private_url = profile._get_child(private_profile, "url")
+                profile.private_url = get_child(private_profile, "url")
 
             # create skills
             skills = person.getElementsByTagName("skills")
@@ -242,7 +327,7 @@ class Profile(LinkedInModel):
                 children = skills.getElementsByTagName('skill')
                 for child in children:
                     if not child.getElementsByTagName('id'):
-                        profile.skills.append(profile._get_child(child, 'name'))
+                        profile.skills.append(get_child(child, 'name'))
                 
             # create languages
             languages = person.getElementsByTagName("languages")
@@ -251,7 +336,7 @@ class Profile(LinkedInModel):
                 children = languages.getElementsByTagName('language')
                 for child in children:
                     if not child.getElementsByTagName('id'):
-                        profile.languages.append(profile._get_child(child, 'name'))
+                        profile.languages.append(get_child(child, 'name'))
 
             # create positions
             positions = person.getElementsByTagName("positions")
@@ -267,10 +352,11 @@ class Profile(LinkedInModel):
             
             # For debugging
             if debug:
-                profile.xml_string = xml_string
+                profile.xml_string = node.toxml()
             
             return profile
         except:
+            print "blat"
             return None
 
         return None
