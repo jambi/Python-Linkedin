@@ -1,0 +1,338 @@
+<?xml version="1.0" ?><person>
+  <connections total="3">
+    <person>
+      <id>kosMphHb2S</id>
+      <first-name>Amit</first-name>
+      <last-name>Abir</last-name>
+      <headline>Team Leader at Israel Defense Forces</headline>
+      <picture-url>http://media.linkedin.com/mpr/mprx/0_O-y3pBkrBc8Y0hK7YPa-pzkrzBLm1_37yKeYpqbGotAY2F9ftquDtN12RJ5lKkh_0AY01PzU797E</picture-url>
+      <api-standard-profile-request>
+        <url>http://api.linkedin.com/v1/people/kosMphHb2S</url>
+        <headers total="1">
+          <http-header>
+            <name>x-li-auth-token</name>
+            <value>name:SBq1</value>
+          </http-header>
+        </headers>
+      </api-standard-profile-request>
+      <site-standard-profile-request>
+        <url>http://www.linkedin.com/profile?viewProfile=&amp;key=133153803&amp;authToken=SBq1&amp;authType=name&amp;trk=api*a101945*s101945*</url>
+      </site-standard-profile-request>
+      <location>
+        <name>Israel</name>
+        <country>
+          <code>il</code>
+        </country>
+      </location>
+      <industry>Computer Software</industry>
+    </person>
+    <person>
+      <id>fNpwJmdkXs</id>
+      <first-name>Pola</first-name>
+      <last-name>Abram</last-name>
+      <headline>Software Developer at IBM XIV</headline>
+      <picture-url>http://media.linkedin.com/mpr/mprx/0_UZgaG6qVvMpfGkrVJJDgG5Xbc07CC3rVJxWlG5BFHVUtg5FscYSGuLidJlfg36A9sUxrDGLbKyk8</picture-url>
+      <api-standard-profile-request>
+        <url>http://api.linkedin.com/v1/people/fNpwJmdkXs</url>
+        <headers total="1">
+          <http-header>
+            <name>x-li-auth-token</name>
+            <value>name:DqTu</value>
+          </http-header>
+        </headers>
+      </api-standard-profile-request>
+      <site-standard-profile-request>
+        <url>http://www.linkedin.com/profile?viewProfile=&amp;key=104272926&amp;authToken=DqTu&amp;authType=name&amp;trk=api*a101945*s101945*</url>
+      </site-standard-profile-request>
+      <location>
+        <name>Israel</name>
+        <country>
+          <code>il</code>
+        </country>
+      </location>
+      <industry>Computer Software</industry>
+    </person>
+    <person>
+      <id>KVuabmBPQ2</id>
+      <first-name>Efrat</first-name>
+      <last-name>Aghassy www.efrataghassy.com</last-name>
+      <headline>Global Engineering Talent Scout &amp; Social Recruiting Specialist</headline>
+      <picture-url>http://media.linkedin.com/mpr/mprx/0_xrBNYr9hDA8jOR6Tg-zIYtQiDnnSyjbTjc_IYtQt-PCg_MK319bZr--yi49t0VQSY1vElzZdb5PN</picture-url>
+      <api-standard-profile-request>
+        <url>http://api.linkedin.com/v1/people/KVuabmBPQ2</url>
+        <headers total="1">
+          <http-header>
+            <name>x-li-auth-token</name>
+            <value>name:eJmp</value>
+          </http-header>
+        </headers>
+      </api-standard-profile-request>
+      <site-standard-profile-request>
+        <url>http://www.linkedin.com/profile?viewProfile=&amp;key=31205521&amp;authToken=eJmp&amp;authType=name&amp;trk=api*a101945*s101945*</url>
+      </site-standard-profile-request>
+      <location>
+        <name>Israel</name>
+        <country>
+          <code>il</code>
+        </country>
+      </location>
+      <industry>Staffing and Recruiting</industry>
+    </person>
+  </connections>
+  <num-recommenders>0</num-recommenders>
+  <member-url-resources total="0"/>
+  <id>sqvX__QhX3</id>
+  <headline>Software Team Leader at XIV</headline>
+  <phone-numbers total="0"/>
+  <three-current-positions total="1">
+    <position>
+      <id>182283292</id>
+      <title>Software Team Leader</title>
+      <summary/>
+      <start-date>
+        <year>2010</year>
+        <month>10</month>
+      </start-date>
+      <is-current>true</is-current>
+      <company>
+        <id>1009</id>
+        <name>XIV - IBM</name>
+        <type>Public Company</type>
+        <industry>Information Technology and Services</industry>
+        <ticker>IBM</ticker>
+      </company>
+    </position>
+  </three-current-positions>
+  <num-connections-capped>false</num-connections-capped>
+  <location>
+    <name>Israel</name>
+    <country>
+      <code>il</code>
+    </country>
+  </location>
+  <num-connections>3</num-connections>
+  <educations total="0"/>
+  <recommendations-received total="0"/>
+  <twitter-accounts total="0"/>
+  <three-past-positions total="2">
+    <position>
+      <id>134350129</id>
+      <title>Software Team Leader</title>
+      <summary/>
+      <start-date>
+        <year>2008</year>
+        <month>12</month>
+      </start-date>
+      <end-date>
+        <year>2010</year>
+        <month>8</month>
+      </end-date>
+      <is-current>false</is-current>
+      <company>
+        <id>75859</id>
+        <name>Muzicall</name>
+        <type>Privately Held</type>
+        <industry>Telecommunications</industry>
+      </company>
+    </position>
+    <position>
+      <id>135059138</id>
+      <title>Developer</title>
+      <start-date>
+        <year>2004</year>
+      </start-date>
+      <end-date>
+        <year>2008</year>
+      </end-date>
+      <is-current>false</is-current>
+      <company>
+        <id>3149</id>
+        <name>IDF</name>
+        <size>10,001+ employees</size>
+        <type>Government Agency</type>
+        <industry>Telecommunications</industry>
+      </company>
+    </position>
+  </three-past-positions>
+  <relation-to-viewer>
+    <distance>0</distance>
+  </relation-to-viewer>
+  <first-name>Iftach</first-name>
+  <distance>0</distance>
+  <last-name>Bar</last-name>
+  <skills total="17">
+    <skill>
+      <id>3</id>
+      <skill>
+        <name>Java</name>
+      </skill>
+    </skill>
+    <skill>
+      <id>4</id>
+      <skill>
+        <name>Spring</name>
+      </skill>
+    </skill>
+    <skill>
+      <id>5</id>
+      <skill>
+        <name>Python</name>
+      </skill>
+    </skill>
+    <skill>
+      <id>6</id>
+      <skill>
+        <name>Ant</name>
+      </skill>
+    </skill>
+    <skill>
+      <id>7</id>
+      <skill>
+        <name>JavaScript</name>
+      </skill>
+    </skill>
+    <skill>
+      <id>8</id>
+      <skill>
+        <name>Agile Project Management</name>
+      </skill>
+    </skill>
+    <skill>
+      <id>9</id>
+      <skill>
+        <name>Agile</name>
+      </skill>
+    </skill>
+    <skill>
+      <id>10</id>
+      <skill>
+        <name>Scrum</name>
+      </skill>
+    </skill>
+    <skill>
+      <id>11</id>
+      <skill>
+        <name>Team Leadership</name>
+      </skill>
+    </skill>
+    <skill>
+      <id>12</id>
+      <skill>
+        <name>J2EE</name>
+      </skill>
+    </skill>
+    <skill>
+      <id>13</id>
+      <skill>
+        <name>Linux</name>
+      </skill>
+    </skill>
+    <skill>
+      <id>14</id>
+      <skill>
+        <name>Refactoring</name>
+      </skill>
+    </skill>
+    <skill>
+      <id>15</id>
+      <skill>
+        <name>Jenkins</name>
+      </skill>
+    </skill>
+    <skill>
+      <id>16</id>
+      <skill>
+        <name>Continuous Integration</name>
+      </skill>
+    </skill>
+    <skill>
+      <id>17</id>
+      <skill>
+        <name>Unit Testing</name>
+      </skill>
+    </skill>
+    <skill>
+      <id>18</id>
+      <skill>
+        <name>JUnit</name>
+      </skill>
+    </skill>
+    <skill>
+      <id>19</id>
+      <skill>
+        <name>Google App Engine</name>
+      </skill>
+    </skill>
+  </skills>
+  <positions total="3">
+    <position>
+      <id>182283292</id>
+      <title>Software Team Leader</title>
+      <summary/>
+      <start-date>
+        <year>2010</year>
+        <month>10</month>
+      </start-date>
+      <is-current>true</is-current>
+      <company>
+        <id>1009</id>
+        <name>XIV - IBM</name>
+        <type>Public Company</type>
+        <industry>Information Technology and Services</industry>
+        <ticker>IBM</ticker>
+      </company>
+    </position>
+    <position>
+      <id>134350129</id>
+      <title>Software Team Leader</title>
+      <summary/>
+      <start-date>
+        <year>2008</year>
+        <month>12</month>
+      </start-date>
+      <end-date>
+        <year>2010</year>
+        <month>8</month>
+      </end-date>
+      <is-current>false</is-current>
+      <company>
+        <id>75859</id>
+        <name>Muzicall</name>
+        <type>Privately Held</type>
+        <industry>Telecommunications</industry>
+      </company>
+    </position>
+    <position>
+      <id>135059138</id>
+      <title>Developer</title>
+      <start-date>
+        <year>2004</year>
+      </start-date>
+      <end-date>
+        <year>2008</year>
+      </end-date>
+      <is-current>false</is-current>
+      <company>
+        <id>3149</id>
+        <name>IDF</name>
+        <size>10,001+ employees</size>
+        <type>Government Agency</type>
+        <industry>Telecommunications</industry>
+      </company>
+    </position>
+  </positions>
+  <im-accounts total="0"/>
+  <public-profile-url>http://www.linkedin.com/pub/iftach-bar/23/a38/a69</public-profile-url>
+  <api-standard-profile-request>
+    <url>http://api.linkedin.com/v1/people/sqvX__QhX3</url>
+    <headers total="1">
+      <http-header>
+        <name>x-li-auth-token</name>
+        <value>name:EnHE</value>
+      </http-header>
+    </headers>
+  </api-standard-profile-request>
+  <site-standard-profile-request>
+    <url>http://www.linkedin.com/profile?viewProfile=&amp;key=83187441&amp;authToken=EnHE&amp;authType=name&amp;trk=api*a101945*s101945*</url>
+  </site-standard-profile-request>
+</person>

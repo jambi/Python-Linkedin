@@ -217,20 +217,20 @@ class RelationToViewer(LinkedInModel):
         </relation-to-viewer>
         """
         relation = RelationToViewer()
-        relation.distance = get_child(node, "distance")
-        relation.num_related_connections = get_child(node, "num-related-connections")
+        relation.distance = int(get_child(node, "distance"))
+        relation.num_related_connections = int(get_child(node, "num-related-connections"))
         
         connections = node.getElementsByTagName("connections")
         if connections:
             connections = connections[0]
             if not relation.num_related_connections:
                 if connections.hasAttribute("total"):
-                    relation.num_related_connections = connections.attributes["total"]
-            connections = connections.getElementsByTabName("connection")
+                    relation.num_related_connections = int(connections.attributes["total"].value)
+            connections = connections.getElementsByTagName("connection")
             if connections:
                 relation.connections = []
                 for connection in connections:
-                    cls.parse_connection(relation, connection)
+                    relation.connections.append(cls.parse_connection(relation, connection))
                     
         return relation
             
@@ -245,10 +245,10 @@ class RelationToViewer(LinkedInModel):
             </person>
         </connection>
         """
-        person = connection.getElementsByTabName("person")
+        person = connection.getElementsByTagName("person")
         if person:
             person = person[0]
-            Profile.create(person)
+            return Profile.create(person)
         
     
 class Profile(LinkedInModel):
@@ -313,6 +313,8 @@ class Profile(LinkedInModel):
             relation_to_viewer = person.getElementsByTagName("relation-to-viewer")
             if relation_to_viewer:
                 relation_to_viewer = relation_to_viewer[0]
+
+            # TODO Last field working on is - relation to viewer
                 
 
             private_profile = person.getElementsByTagName("site-standard-profile-request")

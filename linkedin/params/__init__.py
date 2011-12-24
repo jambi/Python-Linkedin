@@ -262,7 +262,7 @@ class Profile(Fields):
             "member-url-resources" : MemberUrl,
             "api-standard-profile-request" : HttpRequest,
             "positions" : Position,
-            "three_current_positions" : Position,
+            "three-current-positions" : Position,
             "three-past-positions" : Position,
             "publications" : Publication,
             "languages" : Language,

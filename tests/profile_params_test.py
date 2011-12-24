@@ -99,7 +99,7 @@ class ProfileParamsTest(unittest.TestCase):
             "skills",
             "certifications",
             "educations",
-            "three_current_positions",
+            "three-current-positions",
             "three-past-positions",
             "num-recommenders",
             "recommendations-received",
