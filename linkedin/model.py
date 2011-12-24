@@ -13,6 +13,18 @@ def get_child(node, tagName):
     except:
         return None
 
+def parse_connections(connections_node):
+    connections_list = []
+    connections = connections_node.getElementsByTagName("connection")
+    if connections:
+        for connection in connections:
+            person = connection.getElementsByTagName("person")
+            if person:
+                person = person[0]
+                connections_list.append(Profile.create(person))
+
+    return connections_list
+
 class LinkedInModel:
     
     def __repr__(self):
@@ -198,7 +210,7 @@ class RelationToViewer(LinkedInModel):
     def __init__(self):
         self.distance = None
         self.num_related_connections = None
-        self.connections = None
+        self.connections = []
         
     @classmethod
     def create(cls, node):
@@ -226,30 +238,10 @@ class RelationToViewer(LinkedInModel):
             if not relation.num_related_connections:
                 if connections.hasAttribute("total"):
                     relation.num_related_connections = int(connections.attributes["total"].value)
-            connections = connections.getElementsByTagName("connection")
-            if connections:
-                relation.connections = []
-                for connection in connections:
-                    relation.connections.append(cls.parse_connection(relation, connection))
+
+            relation.connections = parse_connections(connections)
                     
         return relation
-            
-    @classmethod
-    def parse_connection(cls, relation, connection):
-        """
-        <connection>
-            <person>
-                <id>_tQbzI5kEk</id>
-                <first-name>Michael</first-name>
-                <last-name>Green</last-name>
-            </person>
-        </connection>
-        """
-        person = connection.getElementsByTagName("person")
-        if person:
-            person = person[0]
-            return Profile.create(person)
-        
     
 class Profile(LinkedInModel):
     """
@@ -269,24 +261,20 @@ class Profile(LinkedInModel):
         self.specialties = None
         self.interests   = None
         self.honors      = None
-        self.positions   = []
-        self.educations  = []
         self.public_url  = None
         self.private_url = None
         self.picture_url = None
         self.current_status = None
+        self.current_share = None
         self.languages   = []
         self.skills      = []
+        self.connections = []
+        self.positions   = []
+        self.educations  = []
         self.xml_string  = None
         
     @staticmethod
     def create(node, debug=False):
-        """
-        @This method is a static method so it shouldn't be called from an instance.
-        
-        Parses the given xml string and results in a Profile instance.
-        If the given instance is not valid, this method returns NULL.
-        """
         try:
             person = node
             if person.nodeName != "person":
@@ -304,18 +292,24 @@ class Profile(LinkedInModel):
             profile.summary = get_child(person, "summary")
             profile.picture_url = profile._unescape(get_child(person, "picture-url"))
             profile.current_status = get_child(person, "current-status")
+            profile.current_share = get_child(person, "current-share")
             profile.public_url = profile._unescape(get_child(person, "public-profile-url"))
-            
+
             location = person.getElementsByTagName("location")
             if location:
                 profile.location = Location.create(location[0])
-                
+
             relation_to_viewer = person.getElementsByTagName("relation-to-viewer")
             if relation_to_viewer:
                 relation_to_viewer = relation_to_viewer[0]
+                profile.relation_to_viewer = RelationToViewer.create(relation_to_viewer)
 
-            # TODO Last field working on is - relation to viewer
-                
+            connections = person.getElementsByTagName("connections")
+            if connections:
+                connections = connections[0]
+                profile.connections = parse_connections(connections)
+
+            # TODO Last field working on is - num_connections
 
             private_profile = person.getElementsByTagName("site-standard-profile-request")
             if private_profile:
@@ -330,7 +324,7 @@ class Profile(LinkedInModel):
                 for child in children:
                     if not child.getElementsByTagName('id'):
                         profile.skills.append(get_child(child, 'name'))
-                
+
             # create languages
             languages = person.getElementsByTagName("languages")
             if languages:
@@ -351,15 +345,21 @@ class Profile(LinkedInModel):
             if educations:
                 educations = educations[0]
                 profile.educations = Education.create(educations)
-            
+
             # For debugging
             if debug:
                 profile.xml_string = node.toxml()
-            
+
             return profile
         except:
             print "blat"
             return None
+        """
+        @This method is a static method so it shouldn't be called from an instance.
+
+        Parses the given xml string and results in a Profile instance.
+        If the given instance is not valid, this method returns NULL.
+        """
 
         return None
 

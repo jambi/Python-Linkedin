@@ -15,7 +15,7 @@ class RelationToViewerModelTest(unittest.TestCase):
         r = RelationToViewer.create(node)
         self.assertEquals(0, r.distance)
         self.assertEquals(0, r.num_related_connections)
-        self.assertFalse(r.connections)
+        self.assertEquals(0, len(r.connections))
 
     def test_empty2(self):
         xml = """
@@ -28,7 +28,7 @@ class RelationToViewerModelTest(unittest.TestCase):
         r = RelationToViewer.create(node)
         self.assertEquals(0, r.distance)
         self.assertEquals(0, r.num_related_connections)
-        self.assertFalse(r.connections)
+        self.assertEquals(0, len(r.connections))
 
 
     def test_full(self):
@@ -51,7 +51,6 @@ class RelationToViewerModelTest(unittest.TestCase):
         r = RelationToViewer.create(node)
         self.assertEquals(2, r.distance)
         self.assertEquals(1, r.num_related_connections)
-        self.assertIsNotNone(r.connections)
         self.assertEquals(1, len(r.connections))
         connection = r.connections[0]
         self.assertEquals("Michael", connection.first_name)
