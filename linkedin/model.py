@@ -13,6 +13,14 @@ def get_child(node, tagName):
     except:
         return None
 
+def str_to_bool(s):
+    if s.lower() == "true":
+        return True
+    elif s.lower() == "false":
+        return False
+    else:
+        return None
+
 def parse_connections(connections_node):
     connections_list = []
     connections = connections_node.getElementsByTagName("connection")
@@ -35,7 +43,38 @@ class LinkedInModel:
         return (self.__module__ + "." + self.__class__.__name__ + " " +
                 d.__repr__())
         
-    
+
+class Company(LinkedInModel):
+
+    def __init__(self):
+        self.id = None
+        self.name = None
+        self.type = None
+        self.size = None
+        self.industry = None
+        self.ticker = None
+
+    @staticmethod
+    def create(node):
+        """
+        <company>
+        <id>1009</id>
+        <name>XIV - IBM</name>
+        <type>Public Company</type>
+        <size>123</size>
+        <industry>Information Technology and Services</industry>
+        <ticker>IBM</ticker>
+        </company>
+        """
+        company = Company()
+        company.id = get_child(node, "id")
+        company.name = get_child(node, "name")
+        company.type = get_child(node, "type")
+        company.size = get_child(node, "size")
+        company.industry = get_child(node, "industry")
+        company.ticker = get_child(node, "ticker")
+        return company
+
 class Education(LinkedInModel):
     """
     Class that wraps an education info of a user
@@ -123,12 +162,12 @@ class Position(LinkedInModel):
         self.start_date = None
         self.end_date   = None
         self.company    = None
+        self.is_current = None
         
 
     @staticmethod
     def create(node):
         """
-        <positions total='1'>
          <position>
           <id>101526695</id>
           <title>Developer</title>
@@ -139,48 +178,44 @@ class Position(LinkedInModel):
           </start-date>
           <is-current>true</is-current>
           <company>
-          <name>Akinon</name>
+            <name>Akinon</name>
           </company>
          </position>
-        </positions>
         """
-        children = node.getElementsByTagName("position")
-        result = []
-        for child in children:
-            position = Position()
-            position.id = get_child(child, "id")
-            position.title = get_child(child, "title")
-            position.summary = get_child(child, "summary")
-            company = child.getElementsByTagName("company")
-            if company:
-                company = company[0]
-                position.company = get_child(company, "name")
-            
-            start_date = child.getElementsByTagName("start-date")
-            if start_date:
-                start_date = start_date[0]
-                try:
-                    year = int(get_child(start_date, "year"))
-                    position.start_date = datetime.date(year, 1, 1)
-                    month = int(get_child(start_date, "month"))
-                    position.start_date = datetime.date(year, month, 1)
-                except Exception:
-                    pass
+        position = Position()
+        position.id = get_child(node, "id")
+        position.title = get_child(node, "title")
+        position.summary = get_child(node, "summary")
+        position.is_current = str_to_bool(get_child(node, "is-current"))
 
-            end_date = child.getElementsByTagName("end-date")
-            if end_date:
-                end_date = end_date[0]
-                try:
-                    year = int(get_child(end_date, "year"))
-                    position.end_date = datetime.date(year, 1, 1)
-                    month = int(get_child(end_date, "month"))
-                    position.end_date = datetime.date(year, month, 1)
-                except Exception:
-                    pass
+        company = node.getElementsByTagName("company")
+        if company:
+            position.company = Company.create(company[0])
+#            position.company = get_child(company, "name")
 
-            result.append(position)
+        start_date = node.getElementsByTagName("start-date")
+        if start_date:
+            start_date = start_date[0]
+            try:
+                year = int(get_child(start_date, "year"))
+                position.start_date = datetime.date(year, 1, 1)
+                month = int(get_child(start_date, "month"))
+                position.start_date = datetime.date(year, month, 1)
+            except Exception:
+                pass
 
-        return result
+        end_date = node.getElementsByTagName("end-date")
+        if end_date:
+            end_date = end_date[0]
+            try:
+                year = int(get_child(end_date, "year"))
+                position.end_date = datetime.date(year, 1, 1)
+                month = int(get_child(end_date, "month"))
+                position.end_date = datetime.date(year, month, 1)
+            except Exception:
+                pass
+
+        return position
         
 class Location(LinkedInModel):
     def __init__(self):
@@ -259,6 +294,8 @@ class Profile(LinkedInModel):
         self.relation_to_viewer = None
         self.summary     = None
         self.specialties = None
+        self.proposal_comments = None
+        self.associations = None
         self.interests   = None
         self.honors      = None
         self.public_url  = None
@@ -266,6 +303,8 @@ class Profile(LinkedInModel):
         self.picture_url = None
         self.current_status = None
         self.current_share = None
+        self.num_connections = None
+        self.num_connections_capped = None
         self.languages   = []
         self.skills      = []
         self.connections = []
@@ -275,85 +314,91 @@ class Profile(LinkedInModel):
         
     @staticmethod
     def create(node, debug=False):
-        try:
-            person = node
-            if person.nodeName != "person":
-                person = person.getElementsByTagName("person")[0]
-            profile = Profile()
-            profile.id = get_child(person, "id")
-            profile.first_name = get_child(person, "first-name")
-            profile.last_name = get_child(person, "last-name")
-            profile.headline = get_child(person, "headline")
-            profile.distance = get_child(person, "distance")
-            profile.specialties = get_child(person, "specialties")
-            profile.industry = get_child(person, "industry")
-            profile.honors = get_child(person, "honors")
-            profile.interests = get_child(person, "interests")
-            profile.summary = get_child(person, "summary")
-            profile.picture_url = profile._unescape(get_child(person, "picture-url"))
-            profile.current_status = get_child(person, "current-status")
-            profile.current_share = get_child(person, "current-share")
-            profile.public_url = profile._unescape(get_child(person, "public-profile-url"))
+        person = node
+        if person.nodeName != "person":
+            person = person.getElementsByTagName("person")[0]
+        profile = Profile()
+        profile.id = get_child(person, "id")
+        profile.first_name = get_child(person, "first-name")
+        profile.last_name = get_child(person, "last-name")
+        profile.headline = get_child(person, "headline")
+        profile.distance = get_child(person, "distance")
+        profile.specialties = get_child(person, "specialties")
+        profile.proposal_comments = get_child(person, "proposal-comments")
+        profile.associations = get_child(person, "associations")
+        profile.industry = get_child(person, "industry")
+        profile.honors = get_child(person, "honors")
+        profile.interests = get_child(person, "interests")
+        profile.summary = get_child(person, "summary")
+        profile.picture_url = profile._unescape(get_child(person, "picture-url"))
+        profile.current_status = get_child(person, "current-status")
+        profile.current_share = get_child(person, "current-share")
+        profile.num_connections = get_child(person, "num-connections")
+        profile.num_connections_capped = get_child(person, "num-connections-capped")
+        profile.public_url = profile._unescape(get_child(person, "public-profile-url"))
 
-            location = person.getElementsByTagName("location")
-            if location:
-                profile.location = Location.create(location[0])
+        location = person.getElementsByTagName("location")
+        if location:
+            profile.location = Location.create(location[0])
 
-            relation_to_viewer = person.getElementsByTagName("relation-to-viewer")
-            if relation_to_viewer:
-                relation_to_viewer = relation_to_viewer[0]
-                profile.relation_to_viewer = RelationToViewer.create(relation_to_viewer)
+        relation_to_viewer = person.getElementsByTagName("relation-to-viewer")
+        if relation_to_viewer:
+            relation_to_viewer = relation_to_viewer[0]
+            profile.relation_to_viewer = RelationToViewer.create(relation_to_viewer)
 
-            connections = person.getElementsByTagName("connections")
-            if connections:
-                connections = connections[0]
-                profile.connections = parse_connections(connections)
+        connections = person.getElementsByTagName("connections")
+        if connections:
+            connections = connections[0]
+            if not profile.num_connections and connections.hasAttribute("total"):
+                profile.num_connections = int(connections.attributes["total"].value)
+            profile.connections = parse_connections(connections)
 
-            # TODO Last field working on is - num_connections
+        # TODO Last field working on is - positions
 
-            private_profile = person.getElementsByTagName("site-standard-profile-request")
-            if private_profile:
-                private_profile = private_profile[0]
-                profile.private_url = get_child(private_profile, "url")
+        private_profile = person.getElementsByTagName("site-standard-profile-request")
+        if private_profile:
+            private_profile = private_profile[0]
+        profile.private_url = get_child(private_profile, "url")
 
-            # create skills
-            skills = person.getElementsByTagName("skills")
-            if skills:
-                skills = skills[0]
-                children = skills.getElementsByTagName('skill')
-                for child in children:
-                    if not child.getElementsByTagName('id'):
-                        profile.skills.append(get_child(child, 'name'))
+        # create skills
+        skills = person.getElementsByTagName("skills")
+        if skills:
+            skills = skills[0]
+            children = skills.getElementsByTagName('skill')
+            for child in children:
+                if not child.getElementsByTagName('id'):
+                    profile.skills.append(get_child(child, 'name'))
 
-            # create languages
-            languages = person.getElementsByTagName("languages")
-            if languages:
-                languages = languages[0]
-                children = languages.getElementsByTagName('language')
-                for child in children:
-                    if not child.getElementsByTagName('id'):
-                        profile.languages.append(get_child(child, 'name'))
+        # create languages
+        languages = person.getElementsByTagName("languages")
+        if languages:
+            languages = languages[0]
+            children = languages.getElementsByTagName('language')
+            for child in children:
+                if not child.getElementsByTagName('id'):
+                    profile.languages.append(get_child(child, 'name'))
 
-            # create positions
-            positions = person.getElementsByTagName("positions")
-            if positions:
-                positions = positions[0]
-                profile.positions = Position.create(positions)
+        # create positions
+        positions = person.getElementsByTagName("positions")
 
-            # create educations
-            educations = person.getElementsByTagName("educations")
-            if educations:
-                educations = educations[0]
-                profile.educations = Education.create(educations)
+        if positions:
+            positions = positions[0]
+            positions = positions.getElementsByTagName("position")
+            # TODO get the total
+            for position in positions:
+                profile.positions.append(Position.create(position))
 
-            # For debugging
-            if debug:
-                profile.xml_string = node.toxml()
+        # create educations
+        educations = person.getElementsByTagName("educations")
+        if educations:
+            educations = educations[0]
+            profile.educations = Education.create(educations)
 
-            return profile
-        except:
-            print "blat"
-            return None
+        # For debugging
+        if debug:
+            profile.xml_string = node.toxml()
+
+        return profile
         """
         @This method is a static method so it shouldn't be called from an instance.
 
