@@ -346,6 +346,7 @@ class Profile(LinkedInModel):
             relation_to_viewer = relation_to_viewer[0]
             profile.relation_to_viewer = RelationToViewer.create(relation_to_viewer)
 
+        # Create connections
         connections = person.getElementsByTagName("connections")
         if connections:
             connections = connections[0]
@@ -353,7 +354,17 @@ class Profile(LinkedInModel):
                 profile.num_connections = int(connections.attributes["total"].value)
             profile.connections = parse_connections(connections)
 
-        # TODO Last field working on is - positions
+        # create positions
+        positions = person.getElementsByTagName("positions")
+
+        if positions:
+            positions = positions[0]
+            positions = positions.getElementsByTagName("position")
+            # TODO get the total
+            for position in positions:
+                profile.positions.append(Position.create(position))
+
+        # TODO Last field working on is - publications
 
         private_profile = person.getElementsByTagName("site-standard-profile-request")
         if private_profile:
@@ -378,16 +389,6 @@ class Profile(LinkedInModel):
                 if not child.getElementsByTagName('id'):
                     profile.languages.append(get_child(child, 'name'))
 
-        # create positions
-        positions = person.getElementsByTagName("positions")
-
-        if positions:
-            positions = positions[0]
-            positions = positions.getElementsByTagName("position")
-            # TODO get the total
-            for position in positions:
-                profile.positions.append(Position.create(position))
-
         # create educations
         educations = person.getElementsByTagName("educations")
         if educations:
@@ -399,36 +400,8 @@ class Profile(LinkedInModel):
             profile.xml_string = node.toxml()
 
         return profile
-        """
-        @This method is a static method so it shouldn't be called from an instance.
-
-        Parses the given xml string and results in a Profile instance.
-        If the given instance is not valid, this method returns NULL.
-        """
-
-        return None
 
     def _unescape(self, url):
         if url:
             return unescape(url)
         return url
-
-    def _get_child(self, node, tagName):
-        try:
-            if tagName == "summary":
-                for n in node.getElementsByTagName(tagName):
-                    if n.parentNode.tagName == node.tagName:
-                        domNode = n
-                        break
-            else:
-                domNode = node.getElementsByTagName(tagName)[0]
-
-            if domNode.parentNode.tagName == node.tagName:
-                childNodes = domNode.childNodes
-                if childNodes:
-                    return childNodes[0].nodeValue
-                return None
-            else:
-                return None
-        except:
-            return None
