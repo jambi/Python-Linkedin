@@ -21,6 +21,15 @@ def str_to_bool(s):
     else:
         return None
 
+def parse_date(node):
+    year = int(get_child(node, "year"))
+    month = get_child(node, "month")
+    if month:
+        month = int(month)
+    else:
+        month = 1
+    return datetime.date(year, month, 1)
+
 def parse_connections(connections_node):
     connections_list = []
     connections = connections_node.getElementsByTagName("connection")
@@ -43,6 +52,49 @@ class LinkedInModel:
         return (self.__module__ + "." + self.__class__.__name__ + " " +
                 d.__repr__())
         
+class Publication(LinkedInModel):
+
+    def __init__(self):
+        self.id = None
+        self.title = None
+        self.publisher_name = None
+        self.date = None
+        self.url = None
+        self.summary = None
+        # Notice that we are ignoring authors field for now until someone will need it.
+
+    @staticmethod
+    def create(node):
+        """
+        <publication>
+            <id>3</id>
+            <title>Publication list, with links to individual papers</title>
+            <publisher>
+                <name>Iftach</name>
+            </publisher>
+            <date>
+                <year>2005</year>
+                <month>5</month>
+            </date>
+            <url>URLURL</url>
+            <summary>My summary</summary>
+        </publication>
+        """
+        publication = Publication()
+        publication.id = get_child(node, "id")
+        publication.title = get_child(node, "title")
+
+        publisher = node.getElementsByTagName("publisher")
+        if publisher:
+            publication.publisher_name = get_child(publisher[0], "name")
+        
+        date = node.getElementsByTagName("date")
+        if date:
+            publication.date = parse_date(date[0])
+
+        publication.url = get_child(node, "url")
+        publication.summary = get_child(node, "summary")
+        return publication
 
 class Company(LinkedInModel):
 
@@ -116,27 +168,14 @@ class Education(LinkedInModel):
             education.school_name = education._get_child(child, "school-name")
             education.degree = education._get_child(child, "degree")
             education.field_of_study = education._get_child(child, "field-of-study")
+
             start_date = child.getElementsByTagName("start-date")
             if start_date:
-                start_date = start_date[0]
-                try:
-                    year = int(education._get_child(start_date, "year"))
-                    education.start_date = datetime.date(year, 1, 1)
-                    month = int(education._get_child(start_date, "month"))
-                    education.start_date = datetime.date(year, month, 1)
-                except Exception:
-                    pass
-
+                education.start_date = parse_date(start_date[0])
+                
             end_date = child.getElementsByTagName("end-date")
             if end_date:
-                end_date = end_date[0]
-                try:
-                    year = int(education._get_child(end_date, "year"))
-                    education.end_date = datetime.date(year, 1, 1)
-                    month = int(education._get_child(end_date, "month"))
-                    education.end_date = datetime.date(year, month, 1)
-                except Exception:
-                    pass
+                education.end_date = parse_date(end_date[0])
 
             result.append(education)            
         return result
@@ -191,29 +230,14 @@ class Position(LinkedInModel):
         company = node.getElementsByTagName("company")
         if company:
             position.company = Company.create(company[0])
-#            position.company = get_child(company, "name")
 
         start_date = node.getElementsByTagName("start-date")
         if start_date:
-            start_date = start_date[0]
-            try:
-                year = int(get_child(start_date, "year"))
-                position.start_date = datetime.date(year, 1, 1)
-                month = int(get_child(start_date, "month"))
-                position.start_date = datetime.date(year, month, 1)
-            except Exception:
-                pass
+            position.start_date = parse_date(start_date[0])
 
         end_date = node.getElementsByTagName("end-date")
         if end_date:
-            end_date = end_date[0]
-            try:
-                year = int(get_child(end_date, "year"))
-                position.end_date = datetime.date(year, 1, 1)
-                month = int(get_child(end_date, "month"))
-                position.end_date = datetime.date(year, month, 1)
-            except Exception:
-                pass
+            position.end_date = parse_date(end_date[0])
 
         return position
         
