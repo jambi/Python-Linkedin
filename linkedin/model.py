@@ -315,9 +315,10 @@ class MemberUrl(LinkedInModel):
           <name>Company Website</name>
         </member-url>
         """
-        member_url = MemberUrl()
+        self = MemberUrl()
         self.url = get_child(node, 'url')
         self.name = get_child(node, 'name')
+        return self
 
 class Profile(LinkedInModel):
     """
