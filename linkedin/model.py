@@ -42,7 +42,8 @@ def parse_connections(connections_node):
 
     return connections_list
 
-class LinkedInModel(object):
+class LinkedInModel:
+    
     def __repr__(self):
         d = {}
         for x,y in self.__dict__.items():
@@ -50,8 +51,9 @@ class LinkedInModel(object):
                 d[x] = y
         return (self.__module__ + "." + self.__class__.__name__ + " " +
                 d.__repr__())
-
+        
 class Publication(LinkedInModel):
+
     def __init__(self):
         self.id = None
         self.title = None
@@ -95,6 +97,7 @@ class Publication(LinkedInModel):
         return publication
 
 class Company(LinkedInModel):
+
     def __init__(self):
         self.id = None
         self.name = None
@@ -298,27 +301,7 @@ class RelationToViewer(LinkedInModel):
             relation.connections = parse_connections(connections)
                     
         return relation
-
-class MemberUrl(LinkedInModel):
-    """
-    Wraps a linkedin "member url", which has a ``url`` and a ``name``.
-    """
-    def __init__(self):
-        self.url = None
-        self.name = None
     
-    @classmethod
-    def create(self, node):
-        """
-        <member-url>
-          <url>http://www.getshortlist.com</url>
-          <name>Company Website</name>
-        </member-url>
-        """
-        member_url = MemberUrl()
-        self.url = get_child(node, 'url')
-        self.name = get_child(node, 'name')
-
 class Profile(LinkedInModel):
     """
     Wraps the data which comes from Profile API of LinkedIn.
@@ -351,7 +334,6 @@ class Profile(LinkedInModel):
         self.connections = []
         self.positions   = []
         self.educations  = []
-        self.member_urls = []
         self.xml_string  = None
         
     @staticmethod
@@ -437,13 +419,6 @@ class Profile(LinkedInModel):
             educations = educations[0]
             profile.educations = Education.create(educations)
 
-        # create member urls
-        urls = person.getElementsByTagName("member-url-resources")
-        if urls:
-            elements = urls[0].getElementsByTagName("member-url")
-            for e in elements:
-                self.member_urls.append(MemberUrl.create(e))
-
         # For debugging
         if debug:
             profile.xml_string = node.toxml()
@@ -454,5 +429,3 @@ class Profile(LinkedInModel):
         if url:
             return unescape(url)
         return url
-
-        
