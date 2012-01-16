@@ -443,7 +443,7 @@ class Profile(LinkedInModel):
         if urls:
             elements = urls[0].getElementsByTagName("member-url")
             for el in elements:
-                self.member_urls.append(MemberUrl.create(el))
+                profile.member_urls.append(MemberUrl.create(el))
 
         # For debugging
         if debug:
